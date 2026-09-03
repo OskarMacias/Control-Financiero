@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Financiero y Préstamos</title>
+    <title>Control Financiero Completo</title>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -12,8 +12,8 @@
             --primary: #2563eb;
             --income-color: #16a34a;
             --expense-color: #dc2626;
-            --borrowed-color: #d97706; /* Color para lo que me prestaron (Deuda) */
-            --lent-color: #0284c7;     /* Color para lo que presté (Por cobrar) */
+            --borrowed-color: #d97706;
+            --lent-color: #0284c7;
             --border-color: #e5e7eb;
         }
 
@@ -66,6 +66,28 @@
             margin-bottom: 15px;
             border-bottom: 2px solid var(--border-color);
             padding-bottom: 8px;
+        }
+
+        /* Alertas de Vencimiento */
+        .alert-box {
+            background-color: #fef2f2;
+            border-left: 5px solid var(--expense-color);
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-box h3 {
+            color: #991b1b;
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .alert-box ul {
+            list-style: none;
+            color: #7f1d1d;
+            font-size: 0.9rem;
         }
 
         .form-group {
@@ -185,6 +207,10 @@
             color: #475569;
         }
 
+        /* Estilos de colores condicionales */
+        .val-positive { color: var(--income-color); font-weight: bold; }
+        .val-negative { color: var(--expense-color); font-weight: bold; }
+
         .type-ingreso { color: var(--income-color); font-weight: bold; }
         .type-egreso { color: var(--expense-color); font-weight: bold; }
         .type-prestamo_recibido { color: var(--borrowed-color); font-weight: bold; }
@@ -229,21 +255,40 @@
 <body>
 
 <div class="container">
-    <h1>Control Financiero y Préstamos</h1>
+    <h1>Control Financiero Completo</h1>
+
+    <!-- Banner de Avisos de Tarjeta -->
+    <div id="alert-banner" class="alert-box">
+        <h3>🚨 Alerta de Pagos Próximos</h3>
+        <ul id="alert-list"></ul>
+    </div>
 
     <div class="grid grid-form-stats">
-        <!-- Formulario Principal -->
+        <!-- Panel Izquierdo: Formularios -->
         <div>
+            <!-- Formulario de Movimientos -->
             <div class="card">
                 <h2>Nuevo Registro</h2>
                 <form id="finance-form">
                     <div class="form-group">
                         <label for="type">Tipo de Operación</label>
                         <select id="type" onchange="handleTypeChange()" required>
-                            <option value="ingreso">Ingreso (Ganancia)</option>
-                            <option value="egreso">Egreso (Gasto)</option>
-                            <option value="prestamo_recibido">Me prestación dinero (Deuda por pagar)</option>
-                            <option value="prestamo_otorgado">Yo presté dinero (Cuenta por cobrar)</option>
+                            <option value="ingreso">Ingreso (Ganancia / Abono)</option>
+                            <option value="egreso">Egreso (Gasto / Compra)</option>
+                            <option value="prestamo_recibido">Me prestaron dinero (Deuda)</option>
+                            <option value="prestamo_otorgado">Yo presté dinero (Por cobrar)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="account-group">
+                        <label for="account">Cuenta / Tarjeta / Cartera</label>
+                        <select id="account" required>
+                            <option value="Efectivo (Cartera)">Efectivo (Cartera)</option>
+                            <option value="Banamex (Débito)">Banamex (Débito)</option>
+                            <option value="Nu (Débito)">Nu (Débito)</option>
+                            <option value="Mercado Pago (Débito)">Mercado Pago (Débito)</option>
+                            <option value="Tarjeta Crédito Nu">Tarjeta Crédito Nu</option>
+                            <option value="Tarjeta Crédito Mercado Pago">Tarjeta Crédito Mercado Pago</option>
                         </select>
                     </div>
 
@@ -253,8 +298,8 @@
                     </div>
 
                     <div class="form-group" id="person-group" style="display: none;">
-                        <label for="person">Nombre de la Persona</label>
-                        <input type="text" id="person" placeholder="Ej. Pedro, Juan, Banco">
+                        <label for="person">Nombre de la Persona / Entidad</label>
+                        <input type="text" id="person" placeholder="Ej. Pedro, Banco">
                     </div>
 
                     <div class="form-group">
@@ -269,10 +314,33 @@
 
                     <div class="form-group">
                         <label for="description">Descripción / Notas</label>
-                        <input type="text" id="description" placeholder="Ej. Gasolina, Abono, Fecha compromiso">
+                        <input type="text" id="description" placeholder="Ej. Gasolina, Pago de tarjeta, Despensa">
                     </div>
 
                     <button type="submit">Guardar Movimiento</button>
+                </form>
+            </div>
+
+            <!-- Configurar Fechas de Corte de Tarjetas -->
+            <div class="card">
+                <h2>Fechas de Tarjetas de Crédito</h2>
+                <form id="card-config-form">
+                    <div class="form-group">
+                        <label for="credit-card-select">Tarjeta</label>
+                        <select id="credit-card-select">
+                            <option value="Tarjeta Crédito Nu">Tarjeta Crédito Nu</option>
+                            <option value="Tarjeta Crédito Mercado Pago">Tarjeta Crédito Mercado Pago</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cutoff-day">Día de Corte (1 - 31)</label>
+                        <input type="number" id="cutoff-day" min="1" max="31" placeholder="Ej. 15" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-day">Día Límite de Pago (1 - 31)</label>
+                        <input type="number" id="payment-day" min="1" max="31" placeholder="Ej. 5" required>
+                    </div>
+                    <button type="submit" class="btn-secondary">Guardar Fechas</button>
                 </form>
             </div>
 
@@ -287,12 +355,29 @@
             </div>
         </div>
 
-        <!-- Panel Principal y Resúmenes -->
+        <!-- Panel Derecha: Balances y Métricas -->
         <div>
+            <!-- Estado de Cuentas y Cartera (NUEVO) -->
+            <div class="card">
+                <h2>Balance Actual por Cuentas y Cartera</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cuenta / Tarjeta</th>
+                                <th>Tipo</th>
+                                <th>Saldo / Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accounts-balance-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Filtro de Tiempo para Ingresos/Gastos -->
             <div class="card" style="padding: 15px;">
                 <div class="filter-container">
-                    <span><strong>Vista (Flujo):</strong></span>
+                    <span><strong>Filtrar Flujo:</strong></span>
                     <button class="filter-btn active" onclick="setPeriod('day', this)">Hoy</button>
                     <button class="filter-btn" onclick="setPeriod('week', this)">Semana</button>
                     <button class="filter-btn" onclick="setPeriod('month', this)">Mes</button>
@@ -304,15 +389,15 @@
             <!-- Métricas Generales -->
             <div class="dashboard-cards">
                 <div class="metric-card income">
-                    <p>Ingresos</p>
-                    <h3 id="total-income">$0.00</h3>
+                    <p>Ingresos Periodo</p>
+                    <h3 id="total-income" class="val-positive">$0.00</h3>
                 </div>
                 <div class="metric-card expense">
-                    <p>Egresos</p>
-                    <h3 id="total-expense">$0.00</h3>
+                    <p>Egresos Periodo</p>
+                    <h3 id="total-expense" class="val-negative">$0.00</h3>
                 </div>
                 <div class="metric-card balance">
-                    <p>Balance Flujo</p>
+                    <p>Flujo Neto</p>
                     <h3 id="total-balance">$0.00</h3>
                 </div>
             </div>
@@ -321,17 +406,17 @@
             <div class="dashboard-cards">
                 <div class="metric-card borrowed">
                     <p>Debo (Me prestaron)</p>
-                    <h3 id="total-borrowed">$0.00</h3>
+                    <h3 id="total-borrowed" class="val-negative">$0.00</h3>
                 </div>
                 <div class="metric-card lent">
                     <p>Me deben (Yo presté)</p>
-                    <h3 id="total-lent">$0.00</h3>
+                    <h3 id="total-lent" class="val-positive">$0.00</h3>
                 </div>
             </div>
 
             <!-- Resumen de Deudores y Acreedores -->
             <div class="card">
-                <h2>Balance por Persona (Préstamos Pendientes)</h2>
+                <h2>Balance de Préstamos por Persona</h2>
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -354,6 +439,7 @@
                         <thead>
                             <tr>
                                 <th>Fecha</th>
+                                <th>Cuenta / Método</th>
                                 <th>Tipo</th>
                                 <th>Detalle</th>
                                 <th>Monto</th>
@@ -371,11 +457,16 @@
 
 <script>
     const categories = {
-        ingreso: ['Uber', 'Mercado Libre', 'Amazon', 'Shein', 'Temu', 'Otros Ingresos'],
-        egreso: ['Comida (Despensa)', 'Escuela', 'Luz', 'Otros Gastos del Hogar', 'Carro', 'Otros Egresos']
+        ingreso: ['Uber', 'Mercado Libre', 'Amazon', 'Shein', 'Temu', 'Abono / Pago Cuentas', 'Otros Ingresos'],
+        egreso: ['Comida (Despensa)', 'Escuela', 'Luz', 'Otros Gastos del Hogar', 'Carro', 'Pago Tarjeta', 'Otros Egresos']
     };
 
     let transactions = JSON.parse(localStorage.getItem('finances_data')) || [];
+    let cardConfigs = JSON.parse(localStorage.getItem('card_configs')) || {
+        "Tarjeta Crédito Nu": { cutoff: 15, payment: 5 },
+        "Tarjeta Crédito Mercado Pago": { cutoff: 20, payment: 10 }
+    };
+    
     let currentPeriod = 'day';
 
     document.getElementById('date').valueAsDate = new Date();
@@ -402,6 +493,18 @@
         }
     }
 
+    document.getElementById('card-config-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const card = document.getElementById('credit-card-select').value;
+        const cutoff = parseInt(document.getElementById('cutoff-day').value);
+        const payment = parseInt(document.getElementById('payment-day').value);
+
+        cardConfigs[card] = { cutoff, payment };
+        localStorage.setItem('card_configs', JSON.stringify(cardConfigs));
+        renderData();
+        alert('Fechas guardadas correctamente.');
+    });
+
     document.getElementById('finance-form').addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -411,12 +514,13 @@
         const newRecord = {
             id: Date.now(),
             type: type,
+            account: document.getElementById('account').value,
             category: isLoan ? '' : document.getElementById('category').value,
             person: isLoan ? document.getElementById('person').value.trim() : '',
             amount: parseFloat(document.getElementById('amount').value),
             date: document.getElementById('date').value,
             description: document.getElementById('description').value || '-',
-            status: isLoan ? 'pendiente' : 'completado' // pendiente o pagado para préstamos
+            status: isLoan ? 'pendiente' : 'completado'
         };
 
         transactions.push(newRecord);
@@ -456,9 +560,7 @@
         const now = new Date();
         
         return transactions.filter(t => {
-            if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado') {
-                return true; // Mostrar siempre los préstamos en el historial
-            }
+            if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado') return true;
 
             const [year, month, day] = t.date.split('-').map(Number);
             const tDate = new Date(year, month - 1, day);
@@ -480,6 +582,32 @@
         });
     }
 
+    function checkCardAlerts() {
+        const today = new Date();
+        const currentDay = today.getDate();
+        const alertList = document.getElementById('alert-list');
+        const alertBanner = document.getElementById('alert-banner');
+        alertList.innerHTML = '';
+        let hasAlerts = false;
+
+        Object.keys(cardConfigs).forEach(cardName => {
+            const config = cardConfigs[cardName];
+            const pDay = config.payment;
+            
+            let daysRemaining = pDay - currentDay;
+            if (daysRemaining < 0) daysRemaining += 30;
+
+            if (daysRemaining <= 5 || currentDay === pDay) {
+                hasAlerts = true;
+                const li = document.createElement('li');
+                li.innerHTML = `⚠️ <strong>${cardName}</strong>: Fecha límite cercana (Día ${pDay}). Te quedan aprox. <strong>${daysRemaining} días</strong> para pagar.`;
+                alertList.appendChild(li);
+            }
+        });
+
+        alertBanner.style.display = hasAlerts ? 'block' : 'none';
+    }
+
     function renderData() {
         const filtered = getFilteredTransactions();
         const tbody = document.getElementById('transaction-list');
@@ -492,8 +620,35 @@
 
         const peopleBalance = {};
 
-        // Recorrer todos los registros para balances generales
+        // Cuentas predefinidas para rastrear saldos acumulados
+        const accountBalances = {
+            "Efectivo (Cartera)": 0,
+            "Banamex (Débito)": 0,
+            "Nu (Débito)": 0,
+            "Mercado Pago (Débito)": 0,
+            "Tarjeta Crédito Nu": 0,            // Deuda acumulada
+            "Tarjeta Crédito Mercado Pago": 0   // Deuda acumulada
+        };
+
+        // Recorrido de todas las transacciones históricas
         transactions.forEach(t => {
+            const acc = t.account || "Efectivo (Cartera)";
+
+            if (t.type === 'ingreso') {
+                if (acc.includes('Crédito')) {
+                    accountBalances[acc] -= t.amount; // Un ingreso en crédito reduce la deuda
+                } else {
+                    accountBalances[acc] += t.amount; // Un ingreso en débito/efectivo aumenta el saldo
+                }
+            } else if (t.type === 'egreso') {
+                if (acc.includes('Crédito')) {
+                    accountBalances[acc] += t.amount; // Un gasto en crédito aumenta la deuda
+                } else {
+                    accountBalances[acc] -= t.amount; // Un gasto en débito/efectivo reduce el saldo
+                }
+            }
+
+            // Préstamos
             if (t.type === 'prestamo_recibido' && t.status === 'pendiente') {
                 totalBorrowedPending += t.amount;
                 peopleBalance[t.person] = (peopleBalance[t.person] || 0) - t.amount;
@@ -502,6 +657,50 @@
                 totalLentPending += t.amount;
                 peopleBalance[t.person] = (peopleBalance[t.person] || 0) + t.amount;
             }
+        });
+
+        // Dibujar Tabla de Balances por Cuenta
+        const accountsTbody = document.getElementById('accounts-balance-list');
+        accountsTbody.innerHTML = '';
+
+        Object.keys(accountBalances).forEach(acc => {
+            const val = accountBalances[acc];
+            const isCredit = acc.includes('Crédito');
+            const tr = document.createElement('tr');
+
+            let displayStatus = '';
+            let valClass = '';
+
+            if (isCredit) {
+                // Tarjetas de Crédito: el valor representa deuda
+                const config = cardConfigs[acc] || { cutoff: '-', payment: '-' };
+                if (val > 0) {
+                    displayStatus = `Debes $${val.toFixed(2)} (Corte: ${config.cutoff} / Pago: ${config.payment})`;
+                    valClass = 'val-negative';
+                } else if (val < 0) {
+                    displayStatus = `Saldo a favor $${Math.abs(val).toFixed(2)}`;
+                    valClass = 'val-positive';
+                } else {
+                    displayStatus = `$0.00 (Al corriente)`;
+                    valClass = 'val-positive';
+                }
+            } else {
+                // Cuentas de Débito y Efectivo
+                if (val >= 0) {
+                    displayStatus = `$${val.toFixed(2)} disponible`;
+                    valClass = 'val-positive';
+                } else {
+                    displayStatus = `-$${Math.abs(val).toFixed(2)} (Sobrepasado)`;
+                    valClass = 'val-negative';
+                }
+            }
+
+            tr.innerHTML = `
+                <td><strong>${acc}</strong></td>
+                <td><small>${isCredit ? 'Crédito' : 'Débito / Efectivo'}</small></td>
+                <td class="${valClass}">${displayStatus}</td>
+            `;
+            accountsTbody.appendChild(tr);
         });
 
         // Ordenar historial
@@ -524,9 +723,10 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${t.date}</td>
+                <td><small>${t.account || 'Efectivo (Cartera)'}</small></td>
                 <td class="type-${t.type}">${typeLabel}</td>
                 <td>${detail}</td>
-                <td>$${t.amount.toFixed(2)}</td>
+                <td class="${t.type === 'ingreso' ? 'val-positive' : t.type === 'egreso' ? 'val-negative' : ''}">$${t.amount.toFixed(2)}</td>
                 <td>
                     ${isLoan ? `<span class="status-badge status-${t.status}">${t.status.toUpperCase()}</span>` : '-'}
                 </td>
@@ -538,7 +738,7 @@
             tbody.appendChild(tr);
         });
 
-        // Actualizar tabla de personas (Préstamos pendientes)
+        // Renderizar Personas (Préstamos)
         const peopleTbody = document.getElementById('people-balance-list');
         peopleTbody.innerHTML = '';
         const peopleNames = Object.keys(peopleBalance);
@@ -551,29 +751,31 @@
                 if (balance !== 0) {
                     const tr = document.createElement('tr');
                     const statusText = balance > 0 ? 'Te debe' : 'Le debes';
-                    const colorClass = balance > 0 ? 'type-prestamo_otorgado' : 'type-prestamo_recibido';
+                    const colorClass = balance > 0 ? 'val-positive' : 'val-negative';
 
                     tr.innerHTML = `
                         <td><strong>${person}</strong></td>
                         <td class="${colorClass}">${statusText}</td>
-                        <td><strong>$${Math.abs(balance).toFixed(2)}</strong></td>
+                        <td class="${colorClass}"><strong>$${Math.abs(balance).toFixed(2)}</strong></td>
                     `;
                     peopleTbody.appendChild(tr);
                 }
             });
         }
 
-        // Métricas
+        // Métricas de Flujo
         document.getElementById('total-income').textContent = `$${incomeSum.toFixed(2)}`;
         document.getElementById('total-expense').textContent = `$${expenseSum.toFixed(2)}`;
         
         const balance = incomeSum - expenseSum;
         const balanceEl = document.getElementById('total-balance');
         balanceEl.textContent = `$${balance.toFixed(2)}`;
-        balanceEl.style.color = balance >= 0 ? 'var(--income-color)' : 'var(--expense-color)';
+        balanceEl.className = balance >= 0 ? 'val-positive' : 'val-negative';
 
         document.getElementById('total-borrowed').textContent = `$${totalBorrowedPending.toFixed(2)}`;
         document.getElementById('total-lent').textContent = `$${totalLentPending.toFixed(2)}`;
+
+        checkCardAlerts();
     }
 
     function exportJSON() {
@@ -581,7 +783,11 @@
             alert('No hay datos registrados para exportar.');
             return;
         }
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
+        const backupData = {
+            transactions: transactions,
+            cardConfigs: cardConfigs
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
         const downloadAnchor = document.createElement('a');
         const fileName = `respaldo_finanzas_${new Date().toISOString().slice(0,10)}.json`;
         downloadAnchor.setAttribute("href", dataStr);
@@ -596,9 +802,10 @@
         fileReader.onload = function(e) {
             try {
                 const importedData = JSON.parse(e.target.result);
-                if (Array.isArray(importedData)) {
+                if (importedData.transactions || Array.isArray(importedData)) {
                     if (confirm('¿Deseas reemplazar los datos actuales con los del archivo importado?')) {
-                        transactions = importedData;
+                        transactions = importedData.transactions || importedData;
+                        if (importedData.cardConfigs) cardConfigs = importedData.cardConfigs;
                         saveAndRender();
                         alert('¡Datos importados con éxito!');
                     }
