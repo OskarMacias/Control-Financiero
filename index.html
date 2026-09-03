@@ -646,7 +646,6 @@
         ajuste_saldo: ['Saldo Inicial', 'Corrección de Balance']
     };
 
-    // Auto-recuperación de llaves guardadas en versiones anteriores
     function loadStoredTransactions() {
         const primary = localStorage.getItem('finances_data');
         if (primary && JSON.parse(primary).length > 0) return JSON.parse(primary);
@@ -665,7 +664,7 @@
         "Tarjeta Crédito Mercado Pago": { cutoff: 20, payment: 10 }
     };
     
-    let currentPeriod = 'all'; // Inicializar en 'all' para garantizar visibilidad de todo el historial
+    let currentPeriod = 'all';
     let expenseChartInstance = null;
 
     document.getElementById('date').valueAsDate = new Date();
@@ -817,10 +816,12 @@
         const isLoan = type === 'prestamo_recibido' || type === 'prestamo_otorgado';
         const isPendingService = (type === 'ingreso' && document.getElementById('is-pending-service').checked);
 
+        const accountVal = isPendingService ? 'Pendiente' : document.getElementById('account').value;
+
         const newRecord = {
             id: Date.now(),
             type: type,
-            account: isPendingService ? 'Pendiente' : document.getElementById('account').value,
+            account: (accountVal && accountVal !== 'undefined') ? accountVal : 'Efectivo (Cartera)',
             category: isLoan ? '' : document.getElementById('category').value,
             person: (isLoan || isPendingService) ? document.getElementById('person').value.trim() : '',
             amount: parseFloat(document.getElementById('amount').value),
@@ -1004,9 +1005,12 @@
             "Tarjeta Crédito Mercado Pago": 0
         };
 
-        // Procesamiento unificado de saldos sobre todo el historial
         transactions.forEach(t => {
-            const acc = t.account || "Efectivo (Cartera)";
+            let acc = t.account;
+            if (!acc || acc === 'undefined') {
+                acc = "Efectivo (Cartera)";
+                t.account = acc;
+            }
 
             if (t.type === 'ingreso' && t.status === 'completado') {
                 if (acc.includes('Crédito')) {
@@ -1096,7 +1100,13 @@
             cardsContainer.innerHTML = '<p style="font-size:0.8rem; color:#94a3b8; grid-column: 1/-1; text-align:center;">No hay saldos o deudas activas en este momento.</p>';
         }
 
-        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Ordenamiento Cronológico ASCENDENTE (del más antiguo al más reciente)
+        filtered.sort((a, b) => {
+            if (a.date !== b.date) {
+                return a.date.localeCompare(b.date);
+            }
+            return a.id - b.id;
+        });
 
         filtered.forEach(t => {
             if (t.type === 'ingreso' && t.status === 'completado') incomeSum += t.amount;
@@ -1116,10 +1126,12 @@
 
             const isPendingIncome = t.type === 'ingreso' && t.status === 'pendiente';
 
+            const displayAccount = (!t.account || t.account === 'undefined') ? 'Efectivo (Cartera)' : t.account;
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${t.date}</td>
-                <td><small>${t.account}</small></td>
+                <td><small>${displayAccount}</small></td>
                 <td class="type-${t.type}">${typeLabel}</td>
                 <td>${detail}</td>
                 <td class="${t.type === 'ingreso' ? 'val-positive' : t.type === 'egreso' ? 'val-negative' : ''}">${formatCurrency(t.amount)}</td>
