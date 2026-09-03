@@ -390,6 +390,17 @@
 
         .checkbox-container input { width: auto; cursor: pointer; }
 
+        .msi-badge {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+
         .show-all-toggle {
             font-size: 0.78rem;
             color: var(--text-muted);
@@ -467,13 +478,27 @@
 
             <div class="form-group" id="account-group">
                 <label for="account">Cuenta / Tarjeta / Cartera</label>
-                <select id="account" required>
+                <select id="account" onchange="handleAccountChange()" required>
                     <option value="Efectivo (Cartera)">💵 Efectivo (Cartera)</option>
                     <option value="Banamex (Débito)">🏦 Banamex (Débito)</option>
                     <option value="Nu (Débito)">💜 Nu (Débito)</option>
                     <option value="Mercado Pago (Débito)">💙 Mercado Pago (Débito)</option>
-                    <option value="Tarjeta Crédito Nu">💳 Tarjeta Crédito Nu</option>
                     <option value="Tarjeta Crédito Mercado Pago">💳 Tarjeta Crédito Mercado Pago</option>
+                    <option value="Tarjeta Crédito Nu">💳 Tarjeta Crédito Nu</option>
+                </select>
+            </div>
+
+            <!-- Selector de Meses Sin Intereses (MSI) -->
+            <div class="form-group" id="msi-group" style="display: none;">
+                <label for="msi-months">Plan de Pagos / Meses Sin Intereses (MSI)</label>
+                <select id="msi-months">
+                    <option value="1">Contado (1 exhibición)</option>
+                    <option value="3">3 Meses Sin Intereses</option>
+                    <option value="6">6 Meses Sin Intereses</option>
+                    <option value="9">9 Meses Sin Intereses</option>
+                    <option value="12">12 Meses Sin Intereses</option>
+                    <option value="18">18 Meses Sin Intereses</option>
+                    <option value="24">24 Meses Sin Intereses</option>
                 </select>
             </div>
 
@@ -499,7 +524,7 @@
 
             <div class="form-group">
                 <label for="description">Descripción / Notas</label>
-                <input type="text" id="description" placeholder="Ej. Viaje centro, Despensa">
+                <input type="text" id="description" placeholder="Ej. Viaje centro, Despensa, Compra Mercado Libre">
             </div>
 
             <button type="submit" class="btn-primary">Guardar Movimiento</button>
@@ -601,19 +626,31 @@
         </div>
     </div>
 
-    <!-- Configuración y Respaldos -->
+    <!-- Configuración y Calculadora de Comisiones Mercado Pago -->
     <div class="card">
-        <details>
-            <summary>⚙️ Fechas de Tarjetas y Respaldos</summary>
+        details>
+            <summary>⚙️ Fechas de Tarjetas, Comisiones MSI y Respaldos</summary>
             
             <div style="margin-top: 14px;">
+                <h3 style="font-size: 0.9rem; margin-bottom: 8px;">Calculadora de Comisiones por Venta en MSI (Mercado Pago / Point)</h3>
+                <div style="background:#f1f5f9; padding:12px; border-radius:8px; font-size:0.8rem; margin-bottom:16px;">
+                    <p style="margin-bottom:6px; color:var(--text-muted);">Comisiones aproximadas que absorbe el vendedor al cobro con tarjeta en MSI (+IVA):</p>
+                    <ul style="padding-left:18px; line-height:1.4;">
+                        <li><strong>3 MSI:</strong> 4.69% + IVA (~5.44%)</li>
+                        <li><strong>6 MSI:</strong> 7.69% + IVA (~8.92%)</li>
+                        <li><strong>9 MSI:</strong> 11.19% + IVA (~12.98%)</li>
+                        <li><strong>12 MSI:</strong> 12.89% + IVA (~14.95%)</li>
+                        <li><strong>24 MSI:</strong> 27.29% + IVA (~31.65%)</li>
+                    </ul>
+                </div>
+
                 <h3 style="font-size: 0.9rem; margin-bottom: 8px;">Configuración de Fechas de Crédito</h3>
                 <form id="card-config-form" style="margin-bottom: 16px;">
                     <div class="form-group">
                         <label for="credit-card-select">Tarjeta</label>
                         <select id="credit-card-select">
-                            <option value="Tarjeta Crédito Nu">Tarjeta Crédito Nu</option>
                             <option value="Tarjeta Crédito Mercado Pago">Tarjeta Crédito Mercado Pago</option>
+                            <option value="Tarjeta Crédito Nu">Tarjeta Crédito Nu</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -678,6 +715,18 @@
         }).format(amount);
     }
 
+    function handleAccountChange() {
+        const accountVal = document.getElementById('account').value;
+        const msiGroup = document.getElementById('msi-group');
+
+        if (accountVal.includes('Crédito')) {
+            msiGroup.style.display = 'block';
+        } else {
+            msiGroup.style.display = 'none';
+            document.getElementById('msi-months').value = '1';
+        }
+    }
+
     function switchTab(tabName) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         if (event && event.target) event.target.classList.add('active');
@@ -729,6 +778,7 @@
                 categorySelect.appendChild(opt);
             });
         }
+        handleAccountChange();
     }
 
     function quickRegisterUber(amount) {
@@ -795,6 +845,7 @@
                 categorySelect.appendChild(option);
             });
         }
+        handleAccountChange();
     }
 
     document.getElementById('card-config-form').addEventListener('submit', function(e) {
@@ -817,6 +868,7 @@
         const isPendingService = (type === 'ingreso' && document.getElementById('is-pending-service').checked);
 
         const accountVal = isPendingService ? 'Pendiente' : document.getElementById('account').value;
+        const msiMonths = parseInt(document.getElementById('msi-months').value) || 1;
 
         const newRecord = {
             id: Date.now(),
@@ -825,6 +877,7 @@
             category: isLoan ? '' : document.getElementById('category').value,
             person: (isLoan || isPendingService) ? document.getElementById('person').value.trim() : '',
             amount: parseFloat(document.getElementById('amount').value),
+            msi: msiMonths,
             date: document.getElementById('date').value,
             description: document.getElementById('description').value || '-',
             status: (isLoan || isPendingService) ? 'pendiente' : 'completado'
@@ -836,6 +889,7 @@
         document.getElementById('date').valueAsDate = new Date();
         document.getElementById('person').value = '';
         document.getElementById('is-pending-service').checked = false;
+        document.getElementById('msi-months').value = '1';
         handleTypeChange();
     });
 
@@ -1001,8 +1055,8 @@
             "Banamex (Débito)": 0,
             "Nu (Débito)": 0,
             "Mercado Pago (Débito)": 0,
-            "Tarjeta Crédito Nu": 0,
-            "Tarjeta Crédito Mercado Pago": 0
+            "Tarjeta Crédito Mercado Pago": 0,
+            "Tarjeta Crédito Nu": 0
         };
 
         transactions.forEach(t => {
@@ -1055,8 +1109,8 @@
             "Banamex (Débito)": { class: "card-banamex", title: "🏦 Banamex Débito" },
             "Nu (Débito)": { class: "card-nu", title: "💜 Nu Débito" },
             "Mercado Pago (Débito)": { class: "card-mercadopago", title: "💙 Mercado Pago" },
-            "Tarjeta Crédito Nu": { class: "card-credito-nu", title: "💳 Crédito Nu" },
-            "Tarjeta Crédito Mercado Pago": { class: "card-credito-mp", title: "💳 Crédito Mercado Pago" }
+            "Tarjeta Crédito Mercado Pago": { class: "card-credito-mp", title: "💳 Crédito Mercado Pago" },
+            "Tarjeta Crédito Nu": { class: "card-credito-nu", title: "💳 Crédito Nu" }
         };
 
         Object.keys(accountBalances).forEach(acc => {
@@ -1125,15 +1179,20 @@
             else if (t.type === 'ajuste_saldo') { typeLabel = 'AJUSTE'; detail = `${t.category}`; }
 
             const isPendingIncome = t.type === 'ingreso' && t.status === 'pendiente';
-
             const displayAccount = (!t.account || t.account === 'undefined') ? 'Efectivo (Cartera)' : t.account;
+
+            let msiInfo = '';
+            if (t.msi && t.msi > 1) {
+                const monthlyPayment = t.amount / t.msi;
+                msiInfo = `<br><span class="msi-badge">💳 ${t.msi} MSI (${formatCurrency(monthlyPayment)}/mes)</span>`;
+            }
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${t.date}</td>
                 <td><small>${displayAccount}</small></td>
                 <td class="type-${t.type}">${typeLabel}</td>
-                <td>${detail}</td>
+                <td>${detail} ${msiInfo}</td>
                 <td class="${t.type === 'ingreso' ? 'val-positive' : t.type === 'egreso' ? 'val-negative' : ''}">${formatCurrency(t.amount)}</td>
                 <td>
                     <div class="action-btns">
@@ -1192,9 +1251,9 @@
             alert('No hay datos para exportar.');
             return;
         }
-        let csvContent = "data:text/csv;charset=utf-8,Fecha,Cuenta,Tipo,Categoria,Persona,Monto,Estado,Descripcion\n";
+        let csvContent = "data:text/csv;charset=utf-8,Fecha,Cuenta,Tipo,Categoria,Persona,Monto,MSI,Estado,Descripcion\n";
         transactions.forEach(t => {
-            csvContent += `${t.date},"${t.account}",${t.type},"${t.category || ''}","${t.person || ''}",${t.amount},${t.status},"${t.description || ''}"\n`;
+            csvContent += `${t.date},"${t.account}",${t.type},"${t.category || ''}","${t.person || ''}",${t.amount},${t.msi || 1},${t.status},"${t.description || ''}"\n`;
         });
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
