@@ -207,7 +207,6 @@
             color: #475569;
         }
 
-        /* Estilos de colores condicionales */
         .val-positive { color: var(--income-color); font-weight: bold; }
         .val-negative { color: var(--expense-color); font-weight: bold; }
 
@@ -236,10 +235,23 @@
             border-radius: 4px;
             width: auto;
             cursor: pointer;
-            margin-right: 5px;
+            margin-right: 4px;
         }
 
         .pay-btn:hover { background: #86efac; }
+
+        .partial-btn {
+            background: #e0f2fe;
+            color: var(--lent-color);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: auto;
+            cursor: pointer;
+            margin-right: 4px;
+        }
+
+        .partial-btn:hover { background: #bae6fd; }
 
         .status-badge {
             display: inline-block;
@@ -357,7 +369,7 @@
 
         <!-- Panel Derecha: Balances y Métricas -->
         <div>
-            <!-- Estado de Cuentas y Cartera (NUEVO) -->
+            <!-- Estado de Cuentas y Cartera -->
             <div class="card">
                 <h2>Balance Actual por Cuentas y Cartera</h2>
                 <div class="table-responsive">
@@ -374,7 +386,7 @@
                 </div>
             </div>
 
-            <!-- Filtro de Tiempo para Ingresos/Gastos -->
+            <!-- Filtro de Tiempo -->
             <div class="card" style="padding: 15px;">
                 <div class="filter-container">
                     <span><strong>Filtrar Flujo:</strong></span>
@@ -471,6 +483,16 @@
 
     document.getElementById('date').valueAsDate = new Date();
 
+    // Función auxiliar para formatear montos con comas de miles ($20,000.00)
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    }
+
     function handleTypeChange() {
         const type = document.getElementById('type').value;
         const categoryGroup = document.getElementById('category-group');
@@ -549,6 +571,46 @@
         }
     }
 
+    function addPartialPayment(id) {
+        const item = transactions.find(t => t.id === id);
+        if (!item || item.status === 'pagado') return;
+
+        const inputAmount = prompt(`Monto actual del préstamo: ${formatCurrency(item.amount)}\n¿Cuánto se abonará?`);
+        if (inputAmount === null) return;
+
+        const partialVal = parseFloat(inputAmount);
+
+        if (isNaN(partialVal) || partialVal <= 0) {
+            alert('Por favor, ingresa un monto válido.');
+            return;
+        }
+
+        if (partialVal >= item.amount) {
+            if (confirm('El abono es igual o mayor al saldo actual. ¿Deseas marcar el préstamo como TOTALMENTE PAGADO?')) {
+                item.status = 'pagado';
+            }
+        } else {
+            item.amount -= partialVal;
+
+            const isRecibido = item.type === 'prestamo_recibido';
+            const paymentRecord = {
+                id: Date.now(),
+                type: isRecibido ? 'egreso' : 'ingreso',
+                account: item.account || 'Efectivo (Cartera)',
+                category: 'Abono / Pago Cuentas',
+                person: item.person,
+                amount: partialVal,
+                date: new Date().toISOString().slice(0, 10),
+                description: `Abono a préstamo de ${item.person}`,
+                status: 'completado'
+            };
+            transactions.push(paymentRecord);
+            alert(`Abono de ${formatCurrency(partialVal)} registrado correctamente. Saldo restante: ${formatCurrency(item.amount)}`);
+        }
+
+        saveAndRender();
+    }
+
     function setPeriod(period, btn) {
         currentPeriod = period;
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -620,35 +682,32 @@
 
         const peopleBalance = {};
 
-        // Cuentas predefinidas para rastrear saldos acumulados
         const accountBalances = {
             "Efectivo (Cartera)": 0,
             "Banamex (Débito)": 0,
             "Nu (Débito)": 0,
             "Mercado Pago (Débito)": 0,
-            "Tarjeta Crédito Nu": 0,            // Deuda acumulada
-            "Tarjeta Crédito Mercado Pago": 0   // Deuda acumulada
+            "Tarjeta Crédito Nu": 0,
+            "Tarjeta Crédito Mercado Pago": 0
         };
 
-        // Recorrido de todas las transacciones históricas
         transactions.forEach(t => {
             const acc = t.account || "Efectivo (Cartera)";
 
             if (t.type === 'ingreso') {
                 if (acc.includes('Crédito')) {
-                    accountBalances[acc] -= t.amount; // Un ingreso en crédito reduce la deuda
+                    accountBalances[acc] -= t.amount;
                 } else {
-                    accountBalances[acc] += t.amount; // Un ingreso en débito/efectivo aumenta el saldo
+                    accountBalances[acc] += t.amount;
                 }
             } else if (t.type === 'egreso') {
                 if (acc.includes('Crédito')) {
-                    accountBalances[acc] += t.amount; // Un gasto en crédito aumenta la deuda
+                    accountBalances[acc] += t.amount;
                 } else {
-                    accountBalances[acc] -= t.amount; // Un gasto en débito/efectivo reduce el saldo
+                    accountBalances[acc] -= t.amount;
                 }
             }
 
-            // Préstamos
             if (t.type === 'prestamo_recibido' && t.status === 'pendiente') {
                 totalBorrowedPending += t.amount;
                 peopleBalance[t.person] = (peopleBalance[t.person] || 0) - t.amount;
@@ -659,7 +718,6 @@
             }
         });
 
-        // Dibujar Tabla de Balances por Cuenta
         const accountsTbody = document.getElementById('accounts-balance-list');
         accountsTbody.innerHTML = '';
 
@@ -672,25 +730,23 @@
             let valClass = '';
 
             if (isCredit) {
-                // Tarjetas de Crédito: el valor representa deuda
                 const config = cardConfigs[acc] || { cutoff: '-', payment: '-' };
                 if (val > 0) {
-                    displayStatus = `Debes $${val.toFixed(2)} (Corte: ${config.cutoff} / Pago: ${config.payment})`;
+                    displayStatus = `Debes ${formatCurrency(val)} (Corte: ${config.cutoff} / Pago: ${config.payment})`;
                     valClass = 'val-negative';
                 } else if (val < 0) {
-                    displayStatus = `Saldo a favor $${Math.abs(val).toFixed(2)}`;
+                    displayStatus = `Saldo a favor ${formatCurrency(Math.abs(val))}`;
                     valClass = 'val-positive';
                 } else {
-                    displayStatus = `$0.00 (Al corriente)`;
+                    displayStatus = `${formatCurrency(0)} (Al corriente)`;
                     valClass = 'val-positive';
                 }
             } else {
-                // Cuentas de Débito y Efectivo
                 if (val >= 0) {
-                    displayStatus = `$${val.toFixed(2)} disponible`;
+                    displayStatus = `${formatCurrency(val)} disponible`;
                     valClass = 'val-positive';
                 } else {
-                    displayStatus = `-$${Math.abs(val).toFixed(2)} (Sobrepasado)`;
+                    displayStatus = `-${formatCurrency(Math.abs(val))} (Sobrepasado)`;
                     valClass = 'val-negative';
                 }
             }
@@ -703,7 +759,6 @@
             accountsTbody.appendChild(tr);
         });
 
-        // Ordenar historial
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         filtered.forEach(t => {
@@ -726,11 +781,12 @@
                 <td><small>${t.account || 'Efectivo (Cartera)'}</small></td>
                 <td class="type-${t.type}">${typeLabel}</td>
                 <td>${detail}</td>
-                <td class="${t.type === 'ingreso' ? 'val-positive' : t.type === 'egreso' ? 'val-negative' : ''}">$${t.amount.toFixed(2)}</td>
+                <td class="${t.type === 'ingreso' ? 'val-positive' : t.type === 'egreso' ? 'val-negative' : ''}">${formatCurrency(t.amount)}</td>
                 <td>
                     ${isLoan ? `<span class="status-badge status-${t.status}">${t.status.toUpperCase()}</span>` : '-'}
                 </td>
                 <td>
+                    ${isLoan && t.status === 'pendiente' ? `<button class="partial-btn" onclick="addPartialPayment(${t.id})">➕ Abonar</button>` : ''}
                     ${isLoan ? `<button class="pay-btn" onclick="toggleLoanStatus(${t.id})">${t.status === 'pendiente' ? '✓ Saldar' : '↩ Reabrir'}</button>` : ''}
                     <button class="delete-btn" onclick="deleteTransaction(${t.id})">✕</button>
                 </td>
@@ -738,7 +794,6 @@
             tbody.appendChild(tr);
         });
 
-        // Renderizar Personas (Préstamos)
         const peopleTbody = document.getElementById('people-balance-list');
         peopleTbody.innerHTML = '';
         const peopleNames = Object.keys(peopleBalance);
@@ -756,24 +811,23 @@
                     tr.innerHTML = `
                         <td><strong>${person}</strong></td>
                         <td class="${colorClass}">${statusText}</td>
-                        <td class="${colorClass}"><strong>$${Math.abs(balance).toFixed(2)}</strong></td>
+                        <td class="${colorClass}"><strong>${formatCurrency(Math.abs(balance))}</strong></td>
                     `;
                     peopleTbody.appendChild(tr);
                 }
             });
         }
 
-        // Métricas de Flujo
-        document.getElementById('total-income').textContent = `$${incomeSum.toFixed(2)}`;
-        document.getElementById('total-expense').textContent = `$${expenseSum.toFixed(2)}`;
+        document.getElementById('total-income').textContent = formatCurrency(incomeSum);
+        document.getElementById('total-expense').textContent = formatCurrency(expenseSum);
         
         const balance = incomeSum - expenseSum;
         const balanceEl = document.getElementById('total-balance');
-        balanceEl.textContent = `$${balance.toFixed(2)}`;
+        balanceEl.textContent = formatCurrency(balance);
         balanceEl.className = balance >= 0 ? 'val-positive' : 'val-negative';
 
-        document.getElementById('total-borrowed').textContent = `$${totalBorrowedPending.toFixed(2)}`;
-        document.getElementById('total-lent').textContent = `$${totalLentPending.toFixed(2)}`;
+        document.getElementById('total-borrowed').textContent = formatCurrency(totalBorrowedPending);
+        document.getElementById('total-lent').textContent = formatCurrency(totalLentPending);
 
         checkCardAlerts();
     }
