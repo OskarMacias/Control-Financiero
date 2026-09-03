@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Ingresos y Egresos</title>
+    <title>Control Financiero y Préstamos</title>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -12,6 +12,8 @@
             --primary: #2563eb;
             --income-color: #16a34a;
             --expense-color: #dc2626;
+            --borrowed-color: #d97706; /* Color para lo que me prestaron (Deuda) */
+            --lent-color: #0284c7;     /* Color para lo que presté (Por cobrar) */
             --border-color: #e5e7eb;
         }
 
@@ -98,7 +100,6 @@
             background-color: #1d4ed8;
         }
 
-        /* Botones para Respaldar Datos */
         .backup-actions {
             display: flex;
             gap: 10px;
@@ -115,9 +116,10 @@
             background-color: #475569;
         }
 
+        /* Métricas */
         .dashboard-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -133,9 +135,11 @@
         .metric-card.income { border-left-color: var(--income-color); }
         .metric-card.expense { border-left-color: var(--expense-color); }
         .metric-card.balance { border-left-color: var(--primary); }
+        .metric-card.borrowed { border-left-color: var(--borrowed-color); }
+        .metric-card.lent { border-left-color: var(--lent-color); }
 
         .metric-card p { font-size: 0.85rem; color: #64748b; }
-        .metric-card h3 { font-size: 1.4rem; margin-top: 5px; }
+        .metric-card h3 { font-size: 1.3rem; margin-top: 5px; }
 
         .filter-container {
             display: flex;
@@ -183,6 +187,8 @@
 
         .type-ingreso { color: var(--income-color); font-weight: bold; }
         .type-egreso { color: var(--expense-color); font-weight: bold; }
+        .type-prestamo_recibido { color: var(--borrowed-color); font-weight: bold; }
+        .type-prestamo_otorgado { color: var(--lent-color); font-weight: bold; }
 
         .delete-btn {
             background: #fee2e2;
@@ -195,30 +201,60 @@
         }
 
         .delete-btn:hover { background: #fca5a5; }
+
+        .pay-btn {
+            background: #dcfce7;
+            color: var(--income-color);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: auto;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .pay-btn:hover { background: #86efac; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 7px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .status-pendiente { background-color: #fef3c7; color: #d97706; }
+        .status-pagado { background-color: #dcfce7; color: #16a34a; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Control Financiero</h1>
+    <h1>Control Financiero y Préstamos</h1>
 
     <div class="grid grid-form-stats">
-        <!-- Formulario -->
+        <!-- Formulario Principal -->
         <div>
             <div class="card">
                 <h2>Nuevo Registro</h2>
                 <form id="finance-form">
                     <div class="form-group">
-                        <label for="type">Tipo</label>
-                        <select id="type" onchange="updateCategories()" required>
-                            <option value="ingreso">Ingreso</option>
+                        <label for="type">Tipo de Operación</label>
+                        <select id="type" onchange="handleTypeChange()" required>
+                            <option value="ingreso">Ingreso (Ganancia)</option>
                             <option value="egreso">Egreso (Gasto)</option>
+                            <option value="prestamo_recibido">Me prestación dinero (Deuda por pagar)</option>
+                            <option value="prestamo_otorgado">Yo presté dinero (Cuenta por cobrar)</option>
                         </select>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" id="category-group">
                         <label for="category">Categoría</label>
                         <select id="category" required></select>
+                    </div>
+
+                    <div class="form-group" id="person-group" style="display: none;">
+                        <label for="person">Nombre de la Persona</label>
+                        <input type="text" id="person" placeholder="Ej. Pedro, Juan, Banco">
                     </div>
 
                     <div class="form-group">
@@ -232,15 +268,15 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="description">Descripción (Opcional)</label>
-                        <input type="text" id="description" placeholder="Ej. Gasolina, Despensa semanal">
+                        <label for="description">Descripción / Notas</label>
+                        <input type="text" id="description" placeholder="Ej. Gasolina, Abono, Fecha compromiso">
                     </div>
 
                     <button type="submit">Guardar Movimiento</button>
                 </form>
             </div>
 
-            <!-- Panel de Respaldos (Exportar/Importar) -->
+            <!-- Respaldo de Datos -->
             <div class="card">
                 <h2>Respaldar Datos</h2>
                 <div class="backup-actions">
@@ -251,12 +287,12 @@
             </div>
         </div>
 
-        <!-- Panel de Control y Estadísticas -->
+        <!-- Panel Principal y Resúmenes -->
         <div>
-            <!-- Filtro Temporal -->
+            <!-- Filtro de Tiempo para Ingresos/Gastos -->
             <div class="card" style="padding: 15px;">
                 <div class="filter-container">
-                    <span><strong>Vista:</strong></span>
+                    <span><strong>Vista (Flujo):</strong></span>
                     <button class="filter-btn active" onclick="setPeriod('day', this)">Hoy</button>
                     <button class="filter-btn" onclick="setPeriod('week', this)">Semana</button>
                     <button class="filter-btn" onclick="setPeriod('month', this)">Mes</button>
@@ -265,7 +301,7 @@
                 </div>
             </div>
 
-            <!-- Métricas -->
+            <!-- Métricas Generales -->
             <div class="dashboard-cards">
                 <div class="metric-card income">
                     <p>Ingresos</p>
@@ -276,12 +312,41 @@
                     <h3 id="total-expense">$0.00</h3>
                 </div>
                 <div class="metric-card balance">
-                    <p>Balance Neto</p>
+                    <p>Balance Flujo</p>
                     <h3 id="total-balance">$0.00</h3>
                 </div>
             </div>
 
-            <!-- Tabla de Registros -->
+            <!-- Balance Activo de Préstamos -->
+            <div class="dashboard-cards">
+                <div class="metric-card borrowed">
+                    <p>Debo (Me prestaron)</p>
+                    <h3 id="total-borrowed">$0.00</h3>
+                </div>
+                <div class="metric-card lent">
+                    <p>Me deben (Yo presté)</p>
+                    <h3 id="total-lent">$0.00</h3>
+                </div>
+            </div>
+
+            <!-- Resumen de Deudores y Acreedores -->
+            <div class="card">
+                <h2>Balance por Persona (Préstamos Pendientes)</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Persona</th>
+                                <th>Estado</th>
+                                <th>Monto Pendiente</th>
+                            </tr>
+                        </thead>
+                        <tbody id="people-balance-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Historial de Movimientos -->
             <div class="card">
                 <h2>Historial de Movimientos</h2>
                 <div class="table-responsive">
@@ -290,9 +355,9 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Tipo</th>
-                                <th>Categoría</th>
                                 <th>Detalle</th>
                                 <th>Monto</th>
+                                <th>Estado</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -315,36 +380,51 @@
 
     document.getElementById('date').valueAsDate = new Date();
 
-    function updateCategories() {
+    function handleTypeChange() {
         const type = document.getElementById('type').value;
+        const categoryGroup = document.getElementById('category-group');
+        const personGroup = document.getElementById('person-group');
         const categorySelect = document.getElementById('category');
-        categorySelect.innerHTML = '';
-        
-        categories[type].forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat;
-            option.textContent = cat;
-            categorySelect.appendChild(option);
-        });
+
+        if (type === 'ingreso' || type === 'egreso') {
+            categoryGroup.style.display = 'block';
+            personGroup.style.display = 'none';
+            categorySelect.innerHTML = '';
+            categories[type].forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
+        } else {
+            categoryGroup.style.display = 'none';
+            personGroup.style.display = 'block';
+        }
     }
 
     document.getElementById('finance-form').addEventListener('submit', function(e) {
         e.preventDefault();
 
+        const type = document.getElementById('type').value;
+        const isLoan = type === 'prestamo_recibido' || type === 'prestamo_otorgado';
+
         const newRecord = {
             id: Date.now(),
-            type: document.getElementById('type').value,
-            category: document.getElementById('category').value,
+            type: type,
+            category: isLoan ? '' : document.getElementById('category').value,
+            person: isLoan ? document.getElementById('person').value.trim() : '',
             amount: parseFloat(document.getElementById('amount').value),
             date: document.getElementById('date').value,
-            description: document.getElementById('description').value || '-'
+            description: document.getElementById('description').value || '-',
+            status: isLoan ? 'pendiente' : 'completado' // pendiente o pagado para préstamos
         };
 
         transactions.push(newRecord);
         saveAndRender();
         this.reset();
         document.getElementById('date').valueAsDate = new Date();
-        updateCategories();
+        document.getElementById('person').value = '';
+        handleTypeChange();
     });
 
     function saveAndRender() {
@@ -355,6 +435,14 @@
     function deleteTransaction(id) {
         transactions = transactions.filter(t => t.id !== id);
         saveAndRender();
+    }
+
+    function toggleLoanStatus(id) {
+        const item = transactions.find(t => t.id === id);
+        if (item) {
+            item.status = item.status === 'pendiente' ? 'pagado' : 'pendiente';
+            saveAndRender();
+        }
     }
 
     function setPeriod(period, btn) {
@@ -368,32 +456,25 @@
         const now = new Date();
         
         return transactions.filter(t => {
+            if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado') {
+                return true; // Mostrar siempre los préstamos en el historial
+            }
+
             const [year, month, day] = t.date.split('-').map(Number);
             const tDate = new Date(year, month - 1, day);
 
-            if (currentPeriod === 'day') {
-                return tDate.toDateString() === now.toDateString();
-            }
-            
+            if (currentPeriod === 'day') return tDate.toDateString() === now.toDateString();
             if (currentPeriod === 'week') {
                 const startOfWeek = new Date(now);
                 startOfWeek.setDate(now.getDate() - now.getDay());
                 startOfWeek.setHours(0,0,0,0);
-                
                 const endOfWeek = new Date(startOfWeek);
                 endOfWeek.setDate(startOfWeek.getDate() + 6);
                 endOfWeek.setHours(23,59,59,999);
-
                 return tDate >= startOfWeek && tDate <= endOfWeek;
             }
-
-            if (currentPeriod === 'month') {
-                return tDate.getMonth() === now.getMonth() && tDate.getFullYear() === now.getFullYear();
-            }
-
-            if (currentPeriod === 'year') {
-                return tDate.getFullYear() === now.getFullYear();
-            }
+            if (currentPeriod === 'month') return tDate.getMonth() === now.getMonth() && tDate.getFullYear() === now.getFullYear();
+            if (currentPeriod === 'year') return tDate.getFullYear() === now.getFullYear();
 
             return true;
         });
@@ -406,25 +487,83 @@
 
         let incomeSum = 0;
         let expenseSum = 0;
+        let totalBorrowedPending = 0;
+        let totalLentPending = 0;
 
+        const peopleBalance = {};
+
+        // Recorrer todos los registros para balances generales
+        transactions.forEach(t => {
+            if (t.type === 'prestamo_recibido' && t.status === 'pendiente') {
+                totalBorrowedPending += t.amount;
+                peopleBalance[t.person] = (peopleBalance[t.person] || 0) - t.amount;
+            }
+            if (t.type === 'prestamo_otorgado' && t.status === 'pendiente') {
+                totalLentPending += t.amount;
+                peopleBalance[t.person] = (peopleBalance[t.person] || 0) + t.amount;
+            }
+        });
+
+        // Ordenar historial
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         filtered.forEach(t => {
             if (t.type === 'ingreso') incomeSum += t.amount;
             if (t.type === 'egreso') expenseSum += t.amount;
 
+            let typeLabel = '';
+            let detail = '';
+
+            if (t.type === 'ingreso') { typeLabel = 'INGRESO'; detail = `${t.category} (${t.description})`; }
+            else if (t.type === 'egreso') { typeLabel = 'EGRESO'; detail = `${t.category} (${t.description})`; }
+            else if (t.type === 'prestamo_recibido') { typeLabel = 'ME PRESTARON'; detail = `De: ${t.person} (${t.description})`; }
+            else if (t.type === 'prestamo_otorgado') { typeLabel = 'PRESTÉ'; detail = `A: ${t.person} (${t.description})`; }
+
+            const isLoan = t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado';
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${t.date}</td>
-                <td class="type-${t.type}">${t.type.toUpperCase()}</td>
-                <td>${t.category}</td>
-                <td>${t.description}</td>
+                <td class="type-${t.type}">${typeLabel}</td>
+                <td>${detail}</td>
                 <td>$${t.amount.toFixed(2)}</td>
-                <td><button class="delete-btn" onclick="deleteTransaction(${t.id})">✕</button></td>
+                <td>
+                    ${isLoan ? `<span class="status-badge status-${t.status}">${t.status.toUpperCase()}</span>` : '-'}
+                </td>
+                <td>
+                    ${isLoan ? `<button class="pay-btn" onclick="toggleLoanStatus(${t.id})">${t.status === 'pendiente' ? '✓ Saldar' : '↩ Reabrir'}</button>` : ''}
+                    <button class="delete-btn" onclick="deleteTransaction(${t.id})">✕</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
 
+        // Actualizar tabla de personas (Préstamos pendientes)
+        const peopleTbody = document.getElementById('people-balance-list');
+        peopleTbody.innerHTML = '';
+        const peopleNames = Object.keys(peopleBalance);
+
+        if (peopleNames.length === 0) {
+            peopleTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">No hay préstamos pendientes</td></tr>';
+        } else {
+            peopleNames.forEach(person => {
+                const balance = peopleBalance[person];
+                if (balance !== 0) {
+                    const tr = document.createElement('tr');
+                    const statusText = balance > 0 ? 'Te debe' : 'Le debes';
+                    const colorClass = balance > 0 ? 'type-prestamo_otorgado' : 'type-prestamo_recibido';
+
+                    tr.innerHTML = `
+                        <td><strong>${person}</strong></td>
+                        <td class="${colorClass}">${statusText}</td>
+                        <td><strong>$${Math.abs(balance).toFixed(2)}</strong></td>
+                    `;
+                    peopleTbody.appendChild(tr);
+                }
+            });
+        }
+
+        // Métricas
         document.getElementById('total-income').textContent = `$${incomeSum.toFixed(2)}`;
         document.getElementById('total-expense').textContent = `$${expenseSum.toFixed(2)}`;
         
@@ -432,9 +571,11 @@
         const balanceEl = document.getElementById('total-balance');
         balanceEl.textContent = `$${balance.toFixed(2)}`;
         balanceEl.style.color = balance >= 0 ? 'var(--income-color)' : 'var(--expense-color)';
+
+        document.getElementById('total-borrowed').textContent = `$${totalBorrowedPending.toFixed(2)}`;
+        document.getElementById('total-lent').textContent = `$${totalLentPending.toFixed(2)}`;
     }
 
-    // Funciones de Respaldos (Exportar e Importar)
     function exportJSON() {
         if (transactions.length === 0) {
             alert('No hay datos registrados para exportar.');
@@ -443,7 +584,6 @@
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
         const downloadAnchor = document.createElement('a');
         const fileName = `respaldo_finanzas_${new Date().toISOString().slice(0,10)}.json`;
-        
         downloadAnchor.setAttribute("href", dataStr);
         downloadAnchor.setAttribute("download", fileName);
         document.body.appendChild(downloadAnchor);
@@ -474,7 +614,7 @@
         }
     }
 
-    updateCategories();
+    handleTypeChange();
     renderData();
 </script>
 
