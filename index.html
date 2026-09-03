@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Ingresos y Egresos</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary: #2563eb;
+            --income-color: #16a34a;
+            --expense-color: #dc2626;
+            --border-color: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .grid-form-stats {
+                grid-template-columns: 350px 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* Botones para Respaldar Datos */
+        .backup-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-secondary {
+            background-color: #64748b;
+            font-size: 0.85rem;
+            padding: 8px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #475569;
+        }
+
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .metric-card.income { border-left-color: var(--income-color); }
+        .metric-card.expense { border-left-color: var(--expense-color); }
+        .metric-card.balance { border-left-color: var(--primary); }
+
+        .metric-card p { font-size: 0.85rem; color: #64748b; }
+        .metric-card h3 { font-size: 1.4rem; margin-top: 5px; }
+
+        .filter-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background-color: #e2e8f0;
+            color: #475569;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: auto;
+            font-weight: 600;
+        }
+
+        .filter-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #475569;
+        }
+
+        .type-ingreso { color: var(--income-color); font-weight: bold; }
+        .type-egreso { color: var(--expense-color); font-weight: bold; }
+
+        .delete-btn {
+            background: #fee2e2;
+            color: var(--expense-color);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: auto;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover { background: #fca5a5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Control Financiero</h1>
+
+    <div class="grid grid-form-stats">
+        <!-- Formulario -->
+        <div>
+            <div class="card">
+                <h2>Nuevo Registro</h2>
+                <form id="finance-form">
+                    <div class="form-group">
+                        <label for="type">Tipo</label>
+                        <select id="type" onchange="updateCategories()" required>
+                            <option value="ingreso">Ingreso</option>
+                            <option value="egreso">Egreso (Gasto)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Categoría</label>
+                        <select id="category" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount">Monto ($)</label>
+                        <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Fecha</label>
+                        <input type="date" id="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Descripción (Opcional)</label>
+                        <input type="text" id="description" placeholder="Ej. Gasolina, Despensa semanal">
+                    </div>
+
+                    <button type="submit">Guardar Movimiento</button>
+                </form>
+            </div>
+
+            <!-- Panel de Respaldos (Exportar/Importar) -->
+            <div class="card">
+                <h2>Respaldar Datos</h2>
+                <div class="backup-actions">
+                    <button type="button" class="btn-secondary" onclick="exportJSON()">📥 Exportar JSON</button>
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('import-file').click()">📤 Importar JSON</button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importJSON(event)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Control y Estadísticas -->
+        <div>
+            <!-- Filtro Temporal -->
+            <div class="card" style="padding: 15px;">
+                <div class="filter-container">
+                    <span><strong>Vista:</strong></span>
+                    <button class="filter-btn active" onclick="setPeriod('day', this)">Hoy</button>
+                    <button class="filter-btn" onclick="setPeriod('week', this)">Semana</button>
+                    <button class="filter-btn" onclick="setPeriod('month', this)">Mes</button>
+                    <button class="filter-btn" onclick="setPeriod('year', this)">Año</button>
+                    <button class="filter-btn" onclick="setPeriod('all', this)">Todo</button>
+                </div>
+            </div>
+
+            <!-- Métricas -->
+            <div class="dashboard-cards">
+                <div class="metric-card income">
+                    <p>Ingresos</p>
+                    <h3 id="total-income">$0.00</h3>
+                </div>
+                <div class="metric-card expense">
+                    <p>Egresos</p>
+                    <h3 id="total-expense">$0.00</h3>
+                </div>
+                <div class="metric-card balance">
+                    <p>Balance Neto</p>
+                    <h3 id="total-balance">$0.00</h3>
+                </div>
+            </div>
+
+            <!-- Tabla de Registros -->
+            <div class="card">
+                <h2>Historial de Movimientos</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Categoría</th>
+                                <th>Detalle</th>
+                                <th>Monto</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transaction-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const categories = {
+        ingreso: ['Uber', 'Mercado Libre', 'Amazon', 'Shein', 'Temu', 'Otros Ingresos'],
+        egreso: ['Comida (Despensa)', 'Escuela', 'Luz', 'Otros Gastos del Hogar', 'Carro', 'Otros Egresos']
+    };
+
+    let transactions = JSON.parse(localStorage.getItem('finances_data')) || [];
+    let currentPeriod = 'day';
+
+    document.getElementById('date').valueAsDate = new Date();
+
+    function updateCategories() {
+        const type = document.getElementById('type').value;
+        const categorySelect = document.getElementById('category');
+        categorySelect.innerHTML = '';
+        
+        categories[type].forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            categorySelect.appendChild(option);
+        });
+    }
+
+    document.getElementById('finance-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const newRecord = {
+            id: Date.now(),
+            type: document.getElementById('type').value,
+            category: document.getElementById('category').value,
+            amount: parseFloat(document.getElementById('amount').value),
+            date: document.getElementById('date').value,
+            description: document.getElementById('description').value || '-'
+        };
+
+        transactions.push(newRecord);
+        saveAndRender();
+        this.reset();
+        document.getElementById('date').valueAsDate = new Date();
+        updateCategories();
+    });
+
+    function saveAndRender() {
+        localStorage.setItem('finances_data', JSON.stringify(transactions));
+        renderData();
+    }
+
+    function deleteTransaction(id) {
+        transactions = transactions.filter(t => t.id !== id);
+        saveAndRender();
+    }
+
+    function setPeriod(period, btn) {
+        currentPeriod = period;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderData();
+    }
+
+    function getFilteredTransactions() {
+        const now = new Date();
+        
+        return transactions.filter(t => {
+            const [year, month, day] = t.date.split('-').map(Number);
+            const tDate = new Date(year, month - 1, day);
+
+            if (currentPeriod === 'day') {
+                return tDate.toDateString() === now.toDateString();
+            }
+            
+            if (currentPeriod === 'week') {
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - now.getDay());
+                startOfWeek.setHours(0,0,0,0);
+                
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                endOfWeek.setHours(23,59,59,999);
+
+                return tDate >= startOfWeek && tDate <= endOfWeek;
+            }
+
+            if (currentPeriod === 'month') {
+                return tDate.getMonth() === now.getMonth() && tDate.getFullYear() === now.getFullYear();
+            }
+
+            if (currentPeriod === 'year') {
+                return tDate.getFullYear() === now.getFullYear();
+            }
+
+            return true;
+        });
+    }
+
+    function renderData() {
+        const filtered = getFilteredTransactions();
+        const tbody = document.getElementById('transaction-list');
+        tbody.innerHTML = '';
+
+        let incomeSum = 0;
+        let expenseSum = 0;
+
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        filtered.forEach(t => {
+            if (t.type === 'ingreso') incomeSum += t.amount;
+            if (t.type === 'egreso') expenseSum += t.amount;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${t.date}</td>
+                <td class="type-${t.type}">${t.type.toUpperCase()}</td>
+                <td>${t.category}</td>
+                <td>${t.description}</td>
+                <td>$${t.amount.toFixed(2)}</td>
+                <td><button class="delete-btn" onclick="deleteTransaction(${t.id})">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('total-income').textContent = `$${incomeSum.toFixed(2)}`;
+        document.getElementById('total-expense').textContent = `$${expenseSum.toFixed(2)}`;
+        
+        const balance = incomeSum - expenseSum;
+        const balanceEl = document.getElementById('total-balance');
+        balanceEl.textContent = `$${balance.toFixed(2)}`;
+        balanceEl.style.color = balance >= 0 ? 'var(--income-color)' : 'var(--expense-color)';
+    }
+
+    // Funciones de Respaldos (Exportar e Importar)
+    function exportJSON() {
+        if (transactions.length === 0) {
+            alert('No hay datos registrados para exportar.');
+            return;
+        }
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
+        const downloadAnchor = document.createElement('a');
+        const fileName = `respaldo_finanzas_${new Date().toISOString().slice(0,10)}.json`;
+        
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", fileName);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function importJSON(event) {
+        const fileReader = new FileReader();
+        fileReader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (Array.isArray(importedData)) {
+                    if (confirm('¿Deseas reemplazar los datos actuales con los del archivo importado?')) {
+                        transactions = importedData;
+                        saveAndRender();
+                        alert('¡Datos importados con éxito!');
+                    }
+                } else {
+                    alert('El archivo cargado no tiene un formato válido.');
+                }
+            } catch (error) {
+                alert('Error al leer el archivo JSON.');
+            }
+        };
+        if (event.target.files[0]) {
+            fileReader.readAsText(event.target.files[0]);
+        }
+    }
+
+    updateCategories();
+    renderData();
+</script>
+
+</body>
+</html>
