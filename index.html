@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -305,6 +305,23 @@
         .status-pendiente { background-color: #fef3c7; color: #d97706; }
         .status-pagado { background-color: #dcfce7; color: #16a34a; }
 
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .checkbox-container input {
+            width: auto;
+            cursor: pointer;
+        }
+
         .show-all-toggle {
             font-size: 0.8rem;
             color: var(--text-muted);
@@ -348,14 +365,14 @@
         <ul id="alert-list"></ul>
     </div>
 
-    <!-- 1. Registrar Movimiento (AHORA EN LA PARTE SUPERIOR) -->
+    <!-- 1. Registrar Movimiento -->
     <div class="card">
         <h2>📝 Registrar Movimiento</h2>
         <form id="finance-form">
             <div class="form-group">
                 <label for="type">Tipo de Operación</label>
                 <select id="type" onchange="handleTypeChange()" required>
-                    <option value="ingreso">Ingreso (Ganancia / Abono)</option>
+                    <option value="ingreso">Ingreso (Uber, Pedidos, Venta)</option>
                     <option value="egreso">Egreso (Gasto / Compra)</option>
                     <option value="prestamo_recibido">Me prestaron dinero (Deuda)</option>
                     <option value="prestamo_otorgado">Yo presté dinero (Por cobrar)</option>
@@ -363,8 +380,16 @@
                 </select>
             </div>
 
+            <!-- Casilla de pago pendiente en ingresos -->
+            <div id="pending-service-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="is-pending-service" onchange="togglePendingService()">
+                    ⏳ Dejar como pago pendiente de cobro (Cliente no ha pagado)
+                </label>
+            </div>
+
             <div class="form-group" id="account-group">
-                <label for="account">Cuenta / Tarjeta / Cartera</label>
+                <label for="account">Cuenta / Tarjeta / Cartera de Cobro</label>
                 <select id="account" required>
                     <option value="Efectivo (Cartera)">Efectivo (Cartera)</option>
                     <option value="Banamex (Débito)">Banamex (Débito)</option>
@@ -381,8 +406,8 @@
             </div>
 
             <div class="form-group" id="person-group" style="display: none;">
-                <label for="person">Nombre de la Persona / Entidad</label>
-                <input type="text" id="person" placeholder="Ej. Pedro, Banco">
+                <label for="person" id="person-label">Nombre de la Persona / Entidad</label>
+                <input type="text" id="person" placeholder="Ej. Cliente Pedro, Banco">
             </div>
 
             <div class="form-group">
@@ -397,14 +422,14 @@
 
             <div class="form-group">
                 <label for="description">Descripción / Notas</label>
-                <input type="text" id="description" placeholder="Ej. Gasolina, Despensa, Saldo inicial">
+                <input type="text" id="description" placeholder="Ej. Viaje de Uber, Pedido ML, Despensa">
             </div>
 
             <button type="submit">Guardar Movimiento</button>
         </form>
     </div>
 
-    <!-- 2. Estado de Cuentas y Cartera (CON FILTRO DE CERO) -->
+    <!-- 2. Estado de Cuentas y Cartera -->
     <div class="card">
         <h2>
             <span>💳 Saldos Activos</span>
@@ -440,11 +465,11 @@
 
         <div class="dashboard-cards">
             <div class="metric-card">
-                <p>Ingresos</p>
+                <p>Ingresos Cobrados</p>
                 <h3 id="total-income" class="val-positive">$0.00</h3>
             </div>
             <div class="metric-card">
-                <p>Egresos</p>
+                <p>Egresos Realizados</p>
                 <h3 id="total-expense" class="val-negative">$0.00</h3>
             </div>
             <div class="metric-card">
@@ -454,16 +479,16 @@
         </div>
     </div>
 
-    <!-- 4. Préstamos y Cuentas por Cobrar/Pagar -->
+    <!-- 4. Préstamos y Servicios Pendientes por Cobrar -->
     <div class="card">
-        <h2>🤝 Préstamos Pendientes</h2>
+        <h2>🤝 Préstamos y Cobros Pendientes</h2>
         <div class="dashboard-cards" style="margin-bottom: 16px;">
             <div class="metric-card">
                 <p>Debo (Me prestaron)</p>
                 <h3 id="total-borrowed" class="val-negative">$0.00</h3>
             </div>
             <div class="metric-card">
-                <p>Me deben (Yo presté)</p>
+                <p>Me deben (Préstamos / Servicios)</p>
                 <h3 id="total-lent" class="val-positive">$0.00</h3>
             </div>
         </div>
@@ -472,7 +497,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Persona</th>
+                        <th>Persona / Cliente</th>
                         <th>Estado</th>
                         <th>Monto Pendiente</th>
                     </tr>
@@ -566,25 +591,64 @@
         }).format(amount);
     }
 
+    function togglePendingService() {
+        const isPending = document.getElementById('is-pending-service').checked;
+        const accountGroup = document.getElementById('account-group');
+        const personGroup = document.getElementById('person-group');
+        const personLabel = document.getElementById('person-label');
+
+        if (isPending) {
+            accountGroup.style.display = 'none';
+            personGroup.style.display = 'block';
+            personLabel.textContent = 'Nombre del Cliente / Persona que debe el viaje';
+        } else {
+            accountGroup.style.display = 'block';
+            personGroup.style.display = 'none';
+        }
+    }
+
     function handleTypeChange() {
         const type = document.getElementById('type').value;
         const categoryGroup = document.getElementById('category-group');
         const personGroup = document.getElementById('person-group');
         const categorySelect = document.getElementById('category');
+        const pendingGroup = document.getElementById('pending-service-group');
+        const accountGroup = document.getElementById('account-group');
+        const isPending = document.getElementById('is-pending-service').checked;
 
-        if (type === 'ingreso' || type === 'egreso' || type === 'ajuste_saldo') {
+        if (type === 'ingreso') {
+            pendingGroup.style.display = 'block';
             categoryGroup.style.display = 'block';
-            personGroup.style.display = 'none';
+            accountGroup.style.display = isPending ? 'none' : 'block';
+            personGroup.style.display = isPending ? 'block' : 'none';
+            
             categorySelect.innerHTML = '';
-            categories[type].forEach(cat => {
+            categories.ingreso.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;
                 option.textContent = cat;
                 categorySelect.appendChild(option);
             });
         } else {
-            categoryGroup.style.display = 'none';
-            personGroup.style.display = 'block';
+            pendingGroup.style.display = 'none';
+            document.getElementById('is-pending-service').checked = false;
+            accountGroup.style.display = 'block';
+
+            if (type === 'egreso' || type === 'ajuste_saldo') {
+                categoryGroup.style.display = 'block';
+                personGroup.style.display = 'none';
+                categorySelect.innerHTML = '';
+                categories[type].forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    categorySelect.appendChild(option);
+                });
+            } else {
+                categoryGroup.style.display = 'none';
+                personGroup.style.display = 'block';
+                document.getElementById('person-label').textContent = 'Nombre de la Persona / Entidad';
+            }
         }
     }
 
@@ -605,17 +669,18 @@
 
         const type = document.getElementById('type').value;
         const isLoan = type === 'prestamo_recibido' || type === 'prestamo_otorgado';
+        const isPendingService = (type === 'ingreso' && document.getElementById('is-pending-service').checked);
 
         const newRecord = {
             id: Date.now(),
             type: type,
-            account: document.getElementById('account').value,
+            account: isPendingService ? 'Pendiente' : document.getElementById('account').value,
             category: isLoan ? '' : document.getElementById('category').value,
-            person: isLoan ? document.getElementById('person').value.trim() : '',
+            person: (isLoan || isPendingService) ? document.getElementById('person').value.trim() : '',
             amount: parseFloat(document.getElementById('amount').value),
             date: document.getElementById('date').value,
             description: document.getElementById('description').value || '-',
-            status: isLoan ? 'pendiente' : 'completado'
+            status: (isLoan || isPendingService) ? 'pendiente' : 'completado'
         };
 
         transactions.push(newRecord);
@@ -623,6 +688,7 @@
         this.reset();
         document.getElementById('date').valueAsDate = new Date();
         document.getElementById('person').value = '';
+        document.getElementById('is-pending-service').checked = false;
         handleTypeChange();
     });
 
@@ -633,6 +699,39 @@
 
     function deleteTransaction(id) {
         transactions = transactions.filter(t => t.id !== id);
+        saveAndRender();
+    }
+
+    // Confirmar pago de un servicio/viaje que estaba pendiente
+    function confirmPendingIncome(id) {
+        const item = transactions.find(t => t.id === id);
+        if (!item || item.status === 'completado') return;
+
+        const selectedAccount = prompt(
+            `El cliente/servicio "${item.person || item.category}" pagó ${formatCurrency(item.amount)}.\n` +
+            `¿A qué cuenta entró el dinero?\n\n` +
+            `1: Efectivo (Cartera)\n` +
+            `2: Banamex (Débito)\n` +
+            `3: Nu (Débito)\n` +
+            `4: Mercado Pago (Débito)`
+        );
+
+        if (selectedAccount === null) return;
+
+        let targetAccount = '';
+        switch(selectedAccount.trim()) {
+            case '1': targetAccount = 'Efectivo (Cartera)'; break;
+            case '2': targetAccount = 'Banamex (Débito)'; break;
+            case '3': targetAccount = 'Nu (Débito)'; break;
+            case '4': targetAccount = 'Mercado Pago (Débito)'; break;
+            default:
+                alert('Opción no válida. Intenta de nuevo.');
+                return;
+        }
+
+        item.account = targetAccount;
+        item.status = 'completado';
+        alert(`¡Pago confirmado! Se acreditaron ${formatCurrency(item.amount)} a la cuenta: ${targetAccount}`);
         saveAndRender();
     }
 
@@ -648,7 +747,7 @@
         const item = transactions.find(t => t.id === id);
         if (!item || item.status === 'pagado') return;
 
-        const inputAmount = prompt(`Monto actual del préstamo: ${formatCurrency(item.amount)}\n¿Cuánto se abonará?`);
+        const inputAmount = prompt(`Monto actual pendiente: ${formatCurrency(item.amount)}\n¿Cuánto se abonará?`);
         if (inputAmount === null) return;
 
         const partialVal = parseFloat(inputAmount);
@@ -659,7 +758,7 @@
         }
 
         if (partialVal >= item.amount) {
-            if (confirm('El abono es igual o mayor al saldo actual. ¿Deseas marcar el préstamo como TOTALMENTE PAGADO?')) {
+            if (confirm('El abono es igual o mayor al saldo actual. ¿Deseas marcar la deuda como TOTALMENTE PAGADA?')) {
                 item.status = 'pagado';
             }
         } else {
@@ -674,7 +773,7 @@
                 person: item.person,
                 amount: partialVal,
                 date: new Date().toISOString().slice(0, 10),
-                description: `Abono a préstamo de ${item.person}`,
+                description: `Abono de ${item.person}`,
                 status: 'completado'
             };
             transactions.push(paymentRecord);
@@ -695,7 +794,7 @@
         const now = new Date();
         
         return transactions.filter(t => {
-            if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado') return true;
+            if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado' || (t.type === 'ingreso' && t.status === 'pendiente')) return true;
 
             const [year, month, day] = t.date.split('-').map(Number);
             const tDate = new Date(year, month - 1, day);
@@ -767,26 +866,26 @@
         transactions.forEach(t => {
             const acc = t.account || "Efectivo (Cartera)";
 
-            if (t.type === 'ingreso') {
+            // Solo sumar a saldos de cuentas si el ingreso ya fue completado/cobrado
+            if (t.type === 'ingreso' && t.status === 'completado') {
                 if (acc.includes('Crédito')) {
                     accountBalances[acc] -= t.amount;
-                } else {
+                } else if (accountBalances.hasOwnProperty(acc)) {
                     accountBalances[acc] += t.amount;
                 }
             } else if (t.type === 'egreso') {
                 if (acc.includes('Crédito')) {
                     accountBalances[acc] += t.amount;
-                } else {
+                } else if (accountBalances.hasOwnProperty(acc)) {
                     accountBalances[acc] -= t.amount;
                 }
             } else if (t.type === 'ajuste_saldo') {
-                if (acc.includes('Crédito')) {
-                    accountBalances[acc] += t.amount;
-                } else {
+                if (accountBalances.hasOwnProperty(acc)) {
                     accountBalances[acc] += t.amount;
                 }
             }
 
+            // Préstamos o ingresos pendientes de cobro
             if (t.type === 'prestamo_recibido' && t.status === 'pendiente') {
                 totalBorrowedPending += t.amount;
                 peopleBalance[t.person] = (peopleBalance[t.person] || 0) - t.amount;
@@ -794,6 +893,11 @@
             if (t.type === 'prestamo_otorgado' && t.status === 'pendiente') {
                 totalLentPending += t.amount;
                 peopleBalance[t.person] = (peopleBalance[t.person] || 0) + t.amount;
+            }
+            if (t.type === 'ingreso' && t.status === 'pendiente') {
+                totalLentPending += t.amount;
+                const clientName = t.person ? `Cliente: ${t.person}` : `Servicio Pendiente (${t.category})`;
+                peopleBalance[clientName] = (peopleBalance[clientName] || 0) + t.amount;
             }
         });
 
@@ -807,7 +911,6 @@
             const val = accountBalances[acc];
             const isCredit = acc.includes('Crédito');
 
-            // Si no está marcada la casilla de mostrar todo, omitir las cuentas en cero
             if (!showAll && val === 0) return;
 
             activeAccountsCount++;
@@ -853,19 +956,20 @@
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         filtered.forEach(t => {
-            if (t.type === 'ingreso') incomeSum += t.amount;
+            if (t.type === 'ingreso' && t.status === 'completado') incomeSum += t.amount;
             if (t.type === 'egreso') expenseSum += t.amount;
 
             let typeLabel = '';
             let detail = '';
 
-            if (t.type === 'ingreso') { typeLabel = 'INGRESO'; detail = `${t.category} (${t.description})`; }
+            if (t.type === 'ingreso') { typeLabel = 'INGRESO'; detail = `${t.category} ${t.person ? '(' + t.person + ')' : ''} (${t.description})`; }
             else if (t.type === 'egreso') { typeLabel = 'EGRESO'; detail = `${t.category} (${t.description})`; }
             else if (t.type === 'prestamo_recibido') { typeLabel = 'ME PRESTARON'; detail = `De: ${t.person} (${t.description})`; }
             else if (t.type === 'prestamo_otorgado') { typeLabel = 'PRESTÉ'; detail = `A: ${t.person} (${t.description})`; }
             else if (t.type === 'ajuste_saldo') { typeLabel = 'AJUSTE / INICIAL'; detail = `${t.category} (${t.description})`; }
 
             const isLoan = t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado';
+            const isPendingIncome = t.type === 'ingreso' && t.status === 'pendiente';
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -875,10 +979,11 @@
                 <td>${detail}</td>
                 <td class="${t.type === 'ingreso' ? 'val-positive' : t.type === 'egreso' ? 'val-negative' : ''}">${formatCurrency(t.amount)}</td>
                 <td>
-                    ${isLoan ? `<span class="status-badge status-${t.status}">${t.status.toUpperCase()}</span>` : '-'}
+                    ${(isLoan || isPendingIncome) ? `<span class="status-badge status-${t.status}">${t.status.toUpperCase()}</span>` : '-'}
                 </td>
                 <td>
                     <div class="action-btns">
+                        ${isPendingIncome ? `<button class="pay-btn" onclick="confirmPendingIncome(${t.id})">💳 Confirmar Pago</button>` : ''}
                         ${isLoan && t.status === 'pendiente' ? `<button class="partial-btn" onclick="addPartialPayment(${t.id})">➕</button>` : ''}
                         ${isLoan ? `<button class="pay-btn" onclick="toggleLoanStatus(${t.id})">${t.status === 'pendiente' ? '✓' : '↩'}</button>` : ''}
                         <button class="delete-btn" onclick="deleteTransaction(${t.id})">✕</button>
@@ -893,7 +998,7 @@
         const peopleNames = Object.keys(peopleBalance);
 
         if (peopleNames.length === 0) {
-            peopleTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">No hay préstamos pendientes</td></tr>';
+            peopleTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">No hay préstamos o cobros pendientes</td></tr>';
         } else {
             peopleNames.forEach(person => {
                 const balance = peopleBalance[person];
