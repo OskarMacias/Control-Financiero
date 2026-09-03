@@ -84,7 +84,6 @@
             justify-content: space-between;
         }
 
-        /* Banner de Alerta */
         .alert-box {
             background-color: #fef2f2;
             border: 1px solid #fecaca;
@@ -107,7 +106,6 @@
             font-size: 0.82rem;
         }
 
-        /* Tarjetas de Saldos Estilo Bancario */
         .bank-cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -146,7 +144,6 @@
             margin-top: 4px;
         }
 
-        /* Colores Específicos por Cuenta */
         .card-efectivo { background: linear-gradient(135deg, #059669, #10b981); }
         .card-banamex { background: linear-gradient(135deg, #0284c7, #2563eb); }
         .card-nu { background: linear-gradient(135deg, #820ad1, #a855f7); }
@@ -154,7 +151,6 @@
         .card-credito-nu { background: linear-gradient(135deg, #4c1d95, #6b21a8); border: 1px solid #c084fc; }
         .card-credito-mp { background: linear-gradient(135deg, #0369a1, #0284c7); border: 1px solid #38bdf8; }
 
-        /* Pestañas (Tabs) en Formularios */
         .tabs-container {
             display: flex;
             gap: 6px;
@@ -184,7 +180,6 @@
             box-shadow: var(--shadow-sm);
         }
 
-        /* Botones de Acceso Rápido para Uber */
         .quick-actions-bar {
             display: flex;
             gap: 6px;
@@ -261,7 +256,6 @@
 
         .btn-secondary:hover { background-color: #e2e8f0; }
 
-        /* Métricas */
         .dashboard-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -427,13 +421,12 @@
         <p>Uber • Pedidos ML/Amazon • Tarjetas • Préstamos</p>
     </header>
 
-    <!-- Banner de Avisos de Tarjeta -->
     <div id="alert-banner" class="alert-box">
         <h3>🚨 Alerta de Pagos Próximos</h3>
         <ul id="alert-list"></ul>
     </div>
 
-    <!-- 1. Registrar Movimiento -->
+    <!-- Registrar Movimiento -->
     <div class="card">
         <h2>📝 Registrar Movimiento</h2>
 
@@ -443,7 +436,6 @@
             <button class="tab-btn" onclick="switchTab('adjust')">⚙️ Saldo Inicial</button>
         </div>
 
-        <!-- Botones de Acceso Rápido Solo Uber -->
         <div class="quick-actions-bar" id="quick-bar">
             <button class="quick-btn" onclick="quickRegisterUber(80)">+ $80 Uber</button>
             <button class="quick-btn" onclick="quickRegisterUber(100)">+ $100 Uber</button>
@@ -466,7 +458,6 @@
                 </select>
             </div>
 
-            <!-- Casilla de servicio pendiente -->
             <div id="pending-service-group">
                 <label class="checkbox-container">
                     <input type="checkbox" id="is-pending-service" onchange="togglePendingService()">
@@ -515,7 +506,7 @@
         </form>
     </div>
 
-    <!-- 2. Saldos Activos -->
+    <!-- Saldos Activos -->
     <div class="card">
         <h2>
             <span>💳 Cuentas y Tarjetas</span>
@@ -527,7 +518,7 @@
         <div class="bank-cards-grid" id="bank-cards-container"></div>
     </div>
 
-    <!-- 3. Métricas y Filtro de Flujo -->
+    <!-- Flujo de Dinero -->
     <div class="card">
         <h2>📊 Flujo de Dinero</h2>
         <div class="filter-container" style="margin-bottom: 12px;">
@@ -553,13 +544,12 @@
             </div>
         </div>
 
-        <!-- Gráfica de Dona de Gastos -->
         <div style="max-width: 280px; margin: 0 auto;">
             <canvas id="expenseChart"></canvas>
         </div>
     </div>
 
-    <!-- 4. Préstamos y Cobros Pendientes -->
+    <!-- Préstamos y Pendientes -->
     <div class="card">
         <h2>🤝 Préstamos y Cobros Pendientes</h2>
         <div class="dashboard-cards" style="margin-bottom: 12px;">
@@ -588,7 +578,7 @@
         </div>
     </div>
 
-    <!-- 5. Historial de Movimientos con Buscador -->
+    <!-- Historial -->
     <div class="card">
         <h2>📋 Historial de Movimientos</h2>
         <div style="margin-bottom: 10px;">
@@ -611,7 +601,7 @@
         </div>
     </div>
 
-    <!-- 6. Configuración y Respaldos -->
+    <!-- Configuración y Respaldos -->
     <div class="card">
         <details>
             <summary>⚙️ Fechas de Tarjetas y Respaldos</summary>
@@ -656,13 +646,26 @@
         ajuste_saldo: ['Saldo Inicial', 'Corrección de Balance']
     };
 
-    let transactions = JSON.parse(localStorage.getItem('finances_data')) || [];
+    // Auto-recuperación de llaves guardadas en versiones anteriores
+    function loadStoredTransactions() {
+        const primary = localStorage.getItem('finances_data');
+        if (primary && JSON.parse(primary).length > 0) return JSON.parse(primary);
+        
+        const backupKeys = ['finances_data_v1', 'financesData', 'transactions', 'finances_backup'];
+        for (let key of backupKeys) {
+            const data = localStorage.getItem(key);
+            if (data && JSON.parse(data).length > 0) return JSON.parse(data);
+        }
+        return [];
+    }
+
+    let transactions = loadStoredTransactions();
     let cardConfigs = JSON.parse(localStorage.getItem('card_configs')) || {
         "Tarjeta Crédito Nu": { cutoff: 15, payment: 5 },
         "Tarjeta Crédito Mercado Pago": { cutoff: 20, payment: 10 }
     };
     
-    let currentPeriod = 'day';
+    let currentPeriod = 'all'; // Inicializar en 'all' para garantizar visibilidad de todo el historial
     let expenseChartInstance = null;
 
     document.getElementById('date').valueAsDate = new Date();
@@ -678,7 +681,7 @@
 
     function switchTab(tabName) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
+        if (event && event.target) event.target.classList.add('active');
         document.getElementById('form-tab').value = tabName;
 
         const opTypeGroup = document.getElementById('operation-type-group');
@@ -729,7 +732,6 @@
         }
     }
 
-    // Registro rápido de Uber
     function quickRegisterUber(amount) {
         document.getElementById('type').value = 'ingreso';
         handleTypeChange();
@@ -901,6 +903,8 @@
                 if (!matchPerson && !matchCategory && !matchDesc && !matchAcc) return false;
             }
 
+            if (currentPeriod === 'all') return true;
+
             if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado' || (t.type === 'ingreso' && t.status === 'pendiente')) return true;
 
             const [year, month, day] = t.date.split('-').map(Number);
@@ -1000,6 +1004,7 @@
             "Tarjeta Crédito Mercado Pago": 0
         };
 
+        // Procesamiento unificado de saldos sobre todo el historial
         transactions.forEach(t => {
             const acc = t.account || "Efectivo (Cartera)";
 
@@ -1128,7 +1133,6 @@
             tbody.appendChild(tr);
         });
 
-        // Renderizar tabla de deudores
         const peopleTbody = document.getElementById('people-balance-list');
         peopleTbody.innerHTML = '';
         const peopleNames = Object.keys(peopleBalance);
