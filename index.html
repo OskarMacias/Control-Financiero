@@ -214,6 +214,7 @@
         .type-egreso { color: var(--expense-color); font-weight: bold; }
         .type-prestamo_recibido { color: var(--borrowed-color); font-weight: bold; }
         .type-prestamo_otorgado { color: var(--lent-color); font-weight: bold; }
+        .type-ajuste { color: #6366f1; font-weight: bold; }
 
         .delete-btn {
             background: #fee2e2;
@@ -289,6 +290,7 @@
                             <option value="egreso">Egreso (Gasto / Compra)</option>
                             <option value="prestamo_recibido">Me prestaron dinero (Deuda)</option>
                             <option value="prestamo_otorgado">Yo presté dinero (Por cobrar)</option>
+                            <option value="ajuste_saldo">⚙️ Ajuste de Saldo Inicial / Corrección</option>
                         </select>
                     </div>
 
@@ -326,7 +328,7 @@
 
                     <div class="form-group">
                         <label for="description">Descripción / Notas</label>
-                        <input type="text" id="description" placeholder="Ej. Gasolina, Pago de tarjeta, Despensa">
+                        <input type="text" id="description" placeholder="Ej. Saldo inicial al comenzar a usar la app">
                     </div>
 
                     <button type="submit">Guardar Movimiento</button>
@@ -470,7 +472,8 @@
 <script>
     const categories = {
         ingreso: ['Uber', 'Mercado Libre', 'Amazon', 'Shein', 'Temu', 'Abono / Pago Cuentas', 'Otros Ingresos'],
-        egreso: ['Comida (Despensa)', 'Escuela', 'Luz', 'Otros Gastos del Hogar', 'Carro', 'Pago Tarjeta', 'Otros Egresos']
+        egreso: ['Comida (Despensa)', 'Escuela', 'Luz', 'Otros Gastos del Hogar', 'Carro', 'Pago Tarjeta', 'Otros Egresos'],
+        ajuste_saldo: ['Saldo Inicial', 'Corrección de Balance']
     };
 
     let transactions = JSON.parse(localStorage.getItem('finances_data')) || [];
@@ -483,7 +486,6 @@
 
     document.getElementById('date').valueAsDate = new Date();
 
-    // Función auxiliar para formatear montos con comas de miles ($20,000.00)
     function formatCurrency(amount) {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -499,7 +501,7 @@
         const personGroup = document.getElementById('person-group');
         const categorySelect = document.getElementById('category');
 
-        if (type === 'ingreso' || type === 'egreso') {
+        if (type === 'ingreso' || type === 'egreso' || type === 'ajuste_saldo') {
             categoryGroup.style.display = 'block';
             personGroup.style.display = 'none';
             categorySelect.innerHTML = '';
@@ -706,6 +708,13 @@
                 } else {
                     accountBalances[acc] -= t.amount;
                 }
+            } else if (t.type === 'ajuste_saldo') {
+                // El ajuste de saldo suma directamente a las cuentas/cartera sin contar como ganancia
+                if (acc.includes('Crédito')) {
+                    accountBalances[acc] += t.amount; // En tarjetas de crédito define la deuda acumulada
+                } else {
+                    accountBalances[acc] += t.amount; // En débito o efectivo establece el dinero actual
+                }
             }
 
             if (t.type === 'prestamo_recibido' && t.status === 'pendiente') {
@@ -772,6 +781,7 @@
             else if (t.type === 'egreso') { typeLabel = 'EGRESO'; detail = `${t.category} (${t.description})`; }
             else if (t.type === 'prestamo_recibido') { typeLabel = 'ME PRESTARON'; detail = `De: ${t.person} (${t.description})`; }
             else if (t.type === 'prestamo_otorgado') { typeLabel = 'PRESTÉ'; detail = `A: ${t.person} (${t.description})`; }
+            else if (t.type === 'ajuste_saldo') { typeLabel = 'AJUSTE / INICIAL'; detail = `${t.category} (${t.description})`; }
 
             const isLoan = t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado';
 
