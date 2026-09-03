@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -37,7 +37,6 @@
             justify-content: center;
         }
 
-        /* Layout unificado en una sola columna con ancho máximo cómodo */
         .single-column-container {
             width: 100%;
             max-width: 760px;
@@ -49,7 +48,7 @@
 
         header {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         header h1 {
@@ -80,10 +79,9 @@
             color: var(--text-main);
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
         }
 
-        /* Alertas de Vencimiento */
         .alert-box {
             background-color: #fef2f2;
             border: 1px solid #fecaca;
@@ -166,7 +164,6 @@
             background-color: #e2e8f0;
         }
 
-        /* Grid compacto de métricas */
         .dashboard-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -308,6 +305,21 @@
         .status-pendiente { background-color: #fef3c7; color: #d97706; }
         .status-pagado { background-color: #dcfce7; color: #16a34a; }
 
+        .show-all-toggle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .show-all-toggle input {
+            width: auto;
+            cursor: pointer;
+        }
+
         details summary {
             cursor: pointer;
             font-size: 0.92rem;
@@ -336,24 +348,7 @@
         <ul id="alert-list"></ul>
     </div>
 
-    <!-- 1. Estado de Cuentas y Cartera -->
-    <div class="card">
-        <h2>💳 Saldos en Cuentas y Cartera</h2>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Cuenta / Tarjeta</th>
-                        <th>Tipo</th>
-                        <th>Saldo / Estado</th>
-                    </tr>
-                </thead>
-                <tbody id="accounts-balance-list"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- 2. Formulario de Nuevo Registro -->
+    <!-- 1. Registrar Movimiento (AHORA EN LA PARTE SUPERIOR) -->
     <div class="card">
         <h2>📝 Registrar Movimiento</h2>
         <form id="finance-form">
@@ -407,6 +402,29 @@
 
             <button type="submit">Guardar Movimiento</button>
         </form>
+    </div>
+
+    <!-- 2. Estado de Cuentas y Cartera (CON FILTRO DE CERO) -->
+    <div class="card">
+        <h2>
+            <span>💳 Saldos Activos</span>
+            <label class="show-all-toggle">
+                <input type="checkbox" id="show-all-accounts" onchange="renderData()">
+                Mostrar todas las cuentas
+            </label>
+        </h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cuenta / Tarjeta</th>
+                        <th>Tipo</th>
+                        <th>Saldo / Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="accounts-balance-list"></tbody>
+            </table>
+        </div>
     </div>
 
     <!-- 3. Métricas y Filtro de Flujo -->
@@ -485,7 +503,7 @@
         </div>
     </div>
 
-    <!-- 6. Herramientas Secundarias (Colapsables para no estorbar) -->
+    <!-- 6. Herramientas Secundarias -->
     <div class="card">
         <details>
             <summary>⚙️ Configuración de Tarjetas y Respaldos</summary>
@@ -782,9 +800,17 @@
         const accountsTbody = document.getElementById('accounts-balance-list');
         accountsTbody.innerHTML = '';
 
+        const showAll = document.getElementById('show-all-accounts').checked;
+        let activeAccountsCount = 0;
+
         Object.keys(accountBalances).forEach(acc => {
             const val = accountBalances[acc];
             const isCredit = acc.includes('Crédito');
+
+            // Si no está marcada la casilla de mostrar todo, omitir las cuentas en cero
+            if (!showAll && val === 0) return;
+
+            activeAccountsCount++;
             const tr = document.createElement('tr');
 
             let displayStatus = '';
@@ -819,6 +845,10 @@
             `;
             accountsTbody.appendChild(tr);
         });
+
+        if (activeAccountsCount === 0) {
+            accountsTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">No hay saldos o deudas activas en este momento.</td></tr>';
+        }
 
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
