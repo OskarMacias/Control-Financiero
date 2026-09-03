@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Financiero Completo</title>
+    <title>Control Financiero Pro</title>
+    <!-- Chart.js para gráficas visuales -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #f8fafc;
+            --bg-color: #f1f5f9;
             --card-bg: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
-            --income-color: #16a34a;
-            --expense-color: #dc2626;
-            --borrowed-color: #d97706;
+            --income-color: #10b981;
+            --expense-color: #ef4444;
+            --borrowed-color: #f59e0b;
             --lent-color: #0284c7;
-            --border-color: #f1f5f9;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+            --border-color: #e2e8f0;
+            --radius: 14px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
             --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-            --radius: 12px;
         }
 
         * {
@@ -32,7 +34,7 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            padding: 24px 12px;
+            padding: 16px 10px;
             display: flex;
             justify-content: center;
         }
@@ -43,87 +45,187 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 18px;
         }
 
         header {
             text-align: center;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
 
         header h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
+            font-size: 1.5rem;
+            font-weight: 800;
             color: var(--text-main);
             letter-spacing: -0.02em;
         }
 
         header p {
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
         .card {
             background: var(--card-bg);
-            padding: 20px;
+            padding: 18px;
             border-radius: var(--radius);
             box-shadow: var(--shadow-md);
             border: 1px solid rgba(226, 232, 240, 0.8);
         }
 
         .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 16px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 14px;
             color: var(--text-main);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
+        /* Banner de Alerta */
         .alert-box {
             background-color: #fef2f2;
             border: 1px solid #fecaca;
             border-left: 4px solid var(--expense-color);
-            padding: 14px 16px;
+            padding: 12px 14px;
             border-radius: var(--radius);
             display: none;
         }
 
         .alert-box h3 {
             color: #991b1b;
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
         .alert-box ul {
             list-style: none;
             color: #7f1d1d;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
         }
 
-        .form-group {
+        /* Tarjetas de Saldos Estilo Bancario */
+        .bank-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .bank-card {
+            padding: 14px;
+            border-radius: 12px;
+            color: white;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 95px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bank-card .card-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            opacity: 0.9;
+            text-transform: uppercase;
+        }
+
+        .bank-card .card-amount {
+            font-size: 1.15rem;
+            font-weight: 800;
+            margin-top: 6px;
+        }
+
+        .bank-card .card-subtext {
+            font-size: 0.7rem;
+            opacity: 0.85;
+            margin-top: 4px;
+        }
+
+        /* Colores Específicos por Cuenta */
+        .card-efectivo { background: linear-gradient(135deg, #059669, #10b981); }
+        .card-banamex { background: linear-gradient(135deg, #0284c7, #2563eb); }
+        .card-nu { background: linear-gradient(135deg, #820ad1, #a855f7); }
+        .card-mercadopago { background: linear-gradient(135deg, #009ee3, #00b9ff); }
+        .card-credito-nu { background: linear-gradient(135deg, #4c1d95, #6b21a8); border: 1px solid #c084fc; }
+        .card-credito-mp { background: linear-gradient(135deg, #0369a1, #0284c7); border: 1px solid #38bdf8; }
+
+        /* Pestañas (Tabs) en Formularios */
+        .tabs-container {
+            display: flex;
+            gap: 6px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 10px;
             margin-bottom: 14px;
         }
 
+        .tab-btn {
+            flex: 1;
+            padding: 8px 4px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background: #ffffff;
+            color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Botones de Acceso Rápido */
+        .quick-actions-bar {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
+
+        .quick-btn {
+            background: #e0f2fe;
+            color: #0284c7;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 20px;
+            border: none;
+            white-space: nowrap;
+            cursor: pointer;
+            width: auto;
+        }
+
+        .quick-btn:hover { background: #bae6fd; }
+
+        .form-group { margin-bottom: 12px; }
+
         label {
             display: block;
-            font-size: 0.82rem;
-            font-weight: 600;
+            font-size: 0.78rem;
+            font-weight: 700;
             color: #334155;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             text-transform: uppercase;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.02em;
         }
 
         input, select, button {
             width: 100%;
-            padding: 11px 14px;
+            padding: 10px 12px;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             outline: none;
             transition: all 0.2s ease;
             background-color: #f8fafc;
@@ -135,64 +237,59 @@
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
-        button {
+        button.btn-primary {
             background-color: var(--primary);
             color: white;
-            font-weight: 600;
+            font-weight: 700;
             border: none;
             cursor: pointer;
             box-shadow: var(--shadow-sm);
         }
 
-        button:hover {
-            background-color: var(--primary-hover);
-        }
+        button.btn-primary:hover { background-color: var(--primary-hover); }
 
-        .backup-actions {
-            display: flex;
-            gap: 12px;
-        }
+        .backup-actions { display: flex; gap: 8px; }
 
         .btn-secondary {
             background-color: #f1f5f9;
             color: #334155;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             border: 1px solid #cbd5e1;
+            font-weight: 600;
         }
 
-        .btn-secondary:hover {
-            background-color: #e2e8f0;
-        }
+        .btn-secondary:hover { background-color: #e2e8f0; }
 
+        /* Métricas */
         .dashboard-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
         }
 
         .metric-card {
             background: #f8fafc;
-            padding: 14px;
+            padding: 12px;
             border-radius: 10px;
             border: 1px solid var(--border-color);
         }
 
         .metric-card p {
-            font-size: 0.78rem;
+            font-size: 0.72rem;
             color: var(--text-muted);
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
         }
 
         .metric-card h3 {
-            font-size: 1.25rem;
-            margin-top: 4px;
-            font-weight: 700;
+            font-size: 1.15rem;
+            margin-top: 2px;
+            font-weight: 800;
         }
 
         .filter-container {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
             overflow-x: auto;
             padding-bottom: 4px;
@@ -201,12 +298,12 @@
         .filter-btn {
             background-color: #f1f5f9;
             color: #475569;
-            padding: 8px 14px;
+            padding: 6px 12px;
             border-radius: 20px;
             cursor: pointer;
             width: auto;
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.8rem;
+            font-weight: 700;
             white-space: nowrap;
             border: none;
         }
@@ -225,82 +322,71 @@
             width: 100%;
             border-collapse: collapse;
             text-align: left;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
         }
 
         th, td {
-            padding: 12px 10px;
+            padding: 10px 8px;
             border-bottom: 1px solid var(--border-color);
         }
 
         th {
             background-color: #f8fafc;
             color: var(--text-muted);
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.03em;
         }
 
-        .val-positive { color: var(--income-color); font-weight: 600; }
-        .val-negative { color: var(--expense-color); font-weight: 600; }
+        .val-positive { color: var(--income-color); font-weight: 700; }
+        .val-negative { color: var(--expense-color); font-weight: 700; }
 
-        .type-ingreso { color: var(--income-color); font-weight: 600; }
-        .type-egreso { color: var(--expense-color); font-weight: 600; }
-        .type-prestamo_recibido { color: var(--borrowed-color); font-weight: 600; }
-        .type-prestamo_otorgado { color: var(--lent-color); font-weight: 600; }
-        .type-ajuste { color: #6366f1; font-weight: 600; }
+        .type-ingreso { color: var(--income-color); font-weight: 700; }
+        .type-egreso { color: var(--expense-color); font-weight: 700; }
+        .type-prestamo_recibido { color: var(--borrowed-color); font-weight: 700; }
+        .type-prestamo_otorgado { color: var(--lent-color); font-weight: 700; }
 
-        .action-btns {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
+        .action-btns { display: flex; gap: 4px; align-items: center; }
 
         .delete-btn {
             background: #fee2e2;
             color: var(--expense-color);
             border: none;
-            padding: 5px 8px;
+            padding: 4px 6px;
             border-radius: 6px;
             width: auto;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             cursor: pointer;
         }
-
-        .delete-btn:hover { background: #fca5a5; }
 
         .pay-btn {
             background: #dcfce7;
             color: var(--income-color);
             border: none;
-            padding: 5px 8px;
+            padding: 4px 6px;
             border-radius: 6px;
             width: auto;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             cursor: pointer;
         }
 
-        .pay-btn:hover { background: #86efac; }
-
-        .partial-btn {
-            background: #e0f2fe;
-            color: var(--lent-color);
+        .ws-btn {
+            background: #dcfce7;
+            color: #15803d;
             border: none;
-            padding: 5px 8px;
+            padding: 4px 6px;
             border-radius: 6px;
             width: auto;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             cursor: pointer;
         }
-
-        .partial-btn:hover { background: #bae6fd; }
 
         .status-badge {
             display: inline-block;
-            padding: 3px 8px;
+            padding: 2px 6px;
             border-radius: 12px;
-            font-size: 0.72rem;
-            font-weight: 700;
+            font-size: 0.7rem;
+            font-weight: 800;
         }
         .status-pendiente { background-color: #fef3c7; color: #d97706; }
         .status-pagado { background-color: #dcfce7; color: #16a34a; }
@@ -309,46 +395,37 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-top: 6px;
-            margin-bottom: 12px;
+            margin-top: 4px;
+            margin-bottom: 10px;
             cursor: pointer;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             color: #334155;
-            font-weight: 500;
+            font-weight: 600;
         }
 
-        .checkbox-container input {
-            width: auto;
-            cursor: pointer;
-        }
+        .checkbox-container input { width: auto; cursor: pointer; }
 
         .show-all-toggle {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
             display: flex;
             align-items: center;
             gap: 6px;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
         }
 
-        .show-all-toggle input {
-            width: auto;
-            cursor: pointer;
-        }
+        .show-all-toggle input { width: auto; cursor: pointer; }
 
         details summary {
             cursor: pointer;
-            font-size: 0.92rem;
-            font-weight: 600;
+            font-size: 0.88rem;
+            font-weight: 700;
             color: var(--text-muted);
             padding: 4px 0;
             user-select: none;
         }
-        details[open] summary {
-            margin-bottom: 12px;
-            color: var(--text-main);
-        }
+        details[open] summary { margin-bottom: 12px; color: var(--text-main); }
     </style>
 </head>
 <body>
@@ -356,7 +433,7 @@
 <div class="single-column-container">
     <header>
         <h1>Control Financiero</h1>
-        <p>Resumen unificado de ingresos, gastos, tarjetas y préstamos</p>
+        <p>Uber • Pedidos ML/Amazon • Tarjetas • Préstamos</p>
     </header>
 
     <!-- Banner de Avisos de Tarjeta -->
@@ -365,38 +442,52 @@
         <ul id="alert-list"></ul>
     </div>
 
-    <!-- 1. Registrar Movimiento -->
+    <!-- 1. Registrar Movimiento (Con Pestañas) -->
     <div class="card">
         <h2>📝 Registrar Movimiento</h2>
+
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="switchTab('flow')">📈 Ingreso / Gasto</button>
+            <button class="tab-btn" onclick="switchTab('loan')">🤝 Préstamo</button>
+            <button class="tab-btn" onclick="switchTab('adjust')">⚙️ Saldo Inicial</button>
+        </div>
+
+        <!-- Botones de Acceso Rápido -->
+        <div class="quick-actions-bar" id="quick-bar">
+            <button class="quick-btn" onclick="quickRegister('Uber', 100)">+ $100 Uber</button>
+            <button class="quick-btn" onclick="quickRegister('Uber', 200)">+ $200 Uber</button>
+            <button class="quick-btn" onclick="quickRegister('Mercado Libre', 300)">+ $300 ML</button>
+            <button class="quick-btn" onclick="quickRegister('Gasolina / Carro', 200, 'egreso')">- $200 Gasolina</button>
+        </div>
+
         <form id="finance-form">
-            <div class="form-group">
+            <input type="hidden" id="form-tab" value="flow">
+
+            <div class="form-group" id="operation-type-group">
                 <label for="type">Tipo de Operación</label>
                 <select id="type" onchange="handleTypeChange()" required>
-                    <option value="ingreso">Ingreso (Uber, Pedidos, Venta)</option>
+                    <option value="ingreso">Ingreso (Ganancia / Abono)</option>
                     <option value="egreso">Egreso (Gasto / Compra)</option>
-                    <option value="prestamo_recibido">Me prestaron dinero (Deuda)</option>
-                    <option value="prestamo_otorgado">Yo presté dinero (Por cobrar)</option>
-                    <option value="ajuste_saldo">⚙️ Ajuste de Saldo Inicial / Corrección</option>
                 </select>
             </div>
 
-            <!-- Casilla de pago pendiente en ingresos -->
+            <!-- Casilla de servicio pendiente -->
             <div id="pending-service-group">
                 <label class="checkbox-container">
                     <input type="checkbox" id="is-pending-service" onchange="togglePendingService()">
-                    ⏳ Dejar como pago pendiente de cobro (Cliente no ha pagado)
+                    ⏳ Dejar como pendiente de cobro (El cliente no ha pagado)
                 </label>
             </div>
 
             <div class="form-group" id="account-group">
-                <label for="account">Cuenta / Tarjeta / Cartera de Cobro</label>
+                <label for="account">Cuenta / Tarjeta / Cartera</label>
                 <select id="account" required>
-                    <option value="Efectivo (Cartera)">Efectivo (Cartera)</option>
-                    <option value="Banamex (Débito)">Banamex (Débito)</option>
-                    <option value="Nu (Débito)">Nu (Débito)</option>
-                    <option value="Mercado Pago (Débito)">Mercado Pago (Débito)</option>
-                    <option value="Tarjeta Crédito Nu">Tarjeta Crédito Nu</option>
-                    <option value="Tarjeta Crédito Mercado Pago">Tarjeta Crédito Mercado Pago</option>
+                    <option value="Efectivo (Cartera)">💵 Efectivo (Cartera)</option>
+                    <option value="Banamex (Débito)">🏦 Banamex (Débito)</option>
+                    <option value="Nu (Débito)">💜 Nu (Débito)</option>
+                    <option value="Mercado Pago (Débito)">💙 Mercado Pago (Débito)</option>
+                    <option value="Tarjeta Crédito Nu">💳 Tarjeta Crédito Nu</option>
+                    <option value="Tarjeta Crédito Mercado Pago">💳 Tarjeta Crédito Mercado Pago</option>
                 </select>
             </div>
 
@@ -406,8 +497,8 @@
             </div>
 
             <div class="form-group" id="person-group" style="display: none;">
-                <label for="person" id="person-label">Nombre de la Persona / Entidad</label>
-                <input type="text" id="person" placeholder="Ej. Cliente Pedro, Banco">
+                <label for="person" id="person-label">Nombre del Cliente / Persona</label>
+                <input type="text" id="person" placeholder="Ej. Pedro, Banco">
             </div>
 
             <div class="form-group">
@@ -422,40 +513,29 @@
 
             <div class="form-group">
                 <label for="description">Descripción / Notas</label>
-                <input type="text" id="description" placeholder="Ej. Viaje de Uber, Pedido ML, Despensa">
+                <input type="text" id="description" placeholder="Ej. Viaje centro, Despensa">
             </div>
 
-            <button type="submit">Guardar Movimiento</button>
+            <button type="submit" class="btn-primary">Guardar Movimiento</button>
         </form>
     </div>
 
-    <!-- 2. Estado de Cuentas y Cartera -->
+    <!-- 2. Saldos Activos (Estilo Tarjetas Bancarias) -->
     <div class="card">
         <h2>
-            <span>💳 Saldos Activos</span>
+            <span>💳 Cuentas y Tarjetas</span>
             <label class="show-all-toggle">
                 <input type="checkbox" id="show-all-accounts" onchange="renderData()">
-                Mostrar todas las cuentas
+                Mostrar todas
             </label>
         </h2>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Cuenta / Tarjeta</th>
-                        <th>Tipo</th>
-                        <th>Saldo / Estado</th>
-                    </tr>
-                </thead>
-                <tbody id="accounts-balance-list"></tbody>
-            </table>
-        </div>
+        <div class="bank-cards-grid" id="bank-cards-container"></div>
     </div>
 
     <!-- 3. Métricas y Filtro de Flujo -->
     <div class="card">
         <h2>📊 Flujo de Dinero</h2>
-        <div class="filter-container" style="margin-bottom: 16px;">
+        <div class="filter-container" style="margin-bottom: 12px;">
             <button class="filter-btn active" onclick="setPeriod('day', this)">Hoy</button>
             <button class="filter-btn" onclick="setPeriod('week', this)">Semana</button>
             <button class="filter-btn" onclick="setPeriod('month', this)">Mes</button>
@@ -463,13 +543,13 @@
             <button class="filter-btn" onclick="setPeriod('all', this)">Todo</button>
         </div>
 
-        <div class="dashboard-cards">
+        <div class="dashboard-cards" style="margin-bottom: 16px;">
             <div class="metric-card">
-                <p>Ingresos Cobrados</p>
+                <p>Ingresos</p>
                 <h3 id="total-income" class="val-positive">$0.00</h3>
             </div>
             <div class="metric-card">
-                <p>Egresos Realizados</p>
+                <p>Egresos</p>
                 <h3 id="total-expense" class="val-negative">$0.00</h3>
             </div>
             <div class="metric-card">
@@ -477,18 +557,23 @@
                 <h3 id="total-balance">$0.00</h3>
             </div>
         </div>
+
+        <!-- Gráfica de Dona de Gastos -->
+        <div style="max-width: 280px; margin: 0 auto;">
+            <canvas id="expenseChart"></canvas>
+        </div>
     </div>
 
-    <!-- 4. Préstamos y Servicios Pendientes por Cobrar -->
+    <!-- 4. Préstamos y Cobros Pendientes -->
     <div class="card">
         <h2>🤝 Préstamos y Cobros Pendientes</h2>
-        <div class="dashboard-cards" style="margin-bottom: 16px;">
+        <div class="dashboard-cards" style="margin-bottom: 12px;">
             <div class="metric-card">
                 <p>Debo (Me prestaron)</p>
                 <h3 id="total-borrowed" class="val-negative">$0.00</h3>
             </div>
             <div class="metric-card">
-                <p>Me deben (Préstamos / Servicios)</p>
+                <p>Me deben (Servicios/Préstamos)</p>
                 <h3 id="total-lent" class="val-positive">$0.00</h3>
             </div>
         </div>
@@ -499,7 +584,8 @@
                     <tr>
                         <th>Persona / Cliente</th>
                         <th>Estado</th>
-                        <th>Monto Pendiente</th>
+                        <th>Pendiente</th>
+                        <th>Cobrar</th>
                     </tr>
                 </thead>
                 <tbody id="people-balance-list"></tbody>
@@ -507,9 +593,12 @@
         </div>
     </div>
 
-    <!-- 5. Historial de Movimientos -->
+    <!-- 5. Historial de Movimientos con Buscador -->
     <div class="card">
         <h2>📋 Historial de Movimientos</h2>
+        <div style="margin-bottom: 10px;">
+            <input type="text" id="search-input" placeholder="🔍 Buscar por persona, categoría o concepto..." oninput="renderData()">
+        </div>
         <div class="table-responsive">
             <table>
                 <thead>
@@ -519,7 +608,6 @@
                         <th>Tipo</th>
                         <th>Detalle</th>
                         <th>Monto</th>
-                        <th>Estado</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -528,14 +616,14 @@
         </div>
     </div>
 
-    <!-- 6. Herramientas Secundarias -->
+    <!-- 6. Configuración y Respaldos -->
     <div class="card">
         <details>
-            <summary>⚙️ Configuración de Tarjetas y Respaldos</summary>
+            <summary>⚙️ Fechas de Tarjetas y Respaldos</summary>
             
-            <div style="margin-top: 16px;">
-                <h3 style="font-size: 0.95rem; margin-bottom: 10px; color: var(--text-main);">Fechas de Corte y Pago</h3>
-                <form id="card-config-form" style="margin-bottom: 20px;">
+            <div style="margin-top: 14px;">
+                <h3 style="font-size: 0.9rem; margin-bottom: 8px;">Configuración de Fechas de Crédito</h3>
+                <form id="card-config-form" style="margin-bottom: 16px;">
                     <div class="form-group">
                         <label for="credit-card-select">Tarjeta</label>
                         <select id="credit-card-select">
@@ -554,10 +642,11 @@
                     <button type="submit" class="btn-secondary">Guardar Fechas</button>
                 </form>
 
-                <h3 style="font-size: 0.95rem; margin-bottom: 10px; color: var(--text-main);">Respaldar / Restaurar Datos</h3>
-                <div class="backup-actions">
-                    <button type="button" class="btn-secondary" onclick="exportJSON()">📥 Exportar JSON</button>
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('import-file').click()">📤 Importar JSON</button>
+                <h3 style="font-size: 0.9rem; margin-bottom: 8px;">Respaldar y Exportar</h3>
+                <div class="backup-actions" style="flex-wrap: wrap;">
+                    <button type="button" class="btn-secondary" onclick="exportCSV()">📊 Exportar a Excel (.CSV)</button>
+                    <button type="button" class="btn-secondary" onclick="exportJSON()">📥 Guardar JSON</button>
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('import-file').click()">📤 Cargar JSON</button>
                     <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importJSON(event)">
                 </div>
             </div>
@@ -579,6 +668,7 @@
     };
     
     let currentPeriod = 'day';
+    let expenseChartInstance = null;
 
     document.getElementById('date').valueAsDate = new Date();
 
@@ -591,6 +681,68 @@
         }).format(amount);
     }
 
+    // Cambio de Pestañas
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('form-tab').value = tabName;
+
+        const opTypeGroup = document.getElementById('operation-type-group');
+        const pendingGroup = document.getElementById('pending-service-group');
+        const accountGroup = document.getElementById('account-group');
+        const personGroup = document.getElementById('person-group');
+        const categoryGroup = document.getElementById('category-group');
+        const typeSelect = document.getElementById('type');
+        const quickBar = document.getElementById('quick-bar');
+
+        if (tabName === 'flow') {
+            opTypeGroup.style.display = 'block';
+            quickBar.style.display = 'flex';
+            typeSelect.innerHTML = `
+                <option value="ingreso">Ingreso (Ganancia / Abono)</option>
+                <option value="egreso">Egreso (Gasto / Compra)</option>
+            `;
+            handleTypeChange();
+        } else if (tabName === 'loan') {
+            opTypeGroup.style.display = 'block';
+            pendingGroup.style.display = 'none';
+            accountGroup.style.display = 'block';
+            categoryGroup.style.display = 'none';
+            personGroup.style.display = 'block';
+            quickBar.style.display = 'none';
+            document.getElementById('person-label').textContent = 'Nombre de la Persona / Entidad';
+            typeSelect.innerHTML = `
+                <option value="prestamo_otorgado">Yo presté dinero (Por cobrar)</option>
+                <option value="prestamo_recibido">Me prestaron dinero (Deuda)</option>
+            `;
+        } else if (tabName === 'adjust') {
+            opTypeGroup.style.display = 'none';
+            pendingGroup.style.display = 'none';
+            accountGroup.style.display = 'block';
+            categoryGroup.style.display = 'block';
+            personGroup.style.display = 'none';
+            quickBar.style.display = 'none';
+            typeSelect.innerHTML = `<option value="ajuste_saldo" selected>Ajuste de Saldo</option>`;
+            
+            const categorySelect = document.getElementById('category');
+            categorySelect.innerHTML = '';
+            categories.ajuste_saldo.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                categorySelect.appendChild(opt);
+            });
+        }
+    }
+
+    function quickRegister(category, amount, type = 'ingreso') {
+        document.getElementById('amount').value = amount;
+        document.getElementById('description').value = `Registro rápido ${category}`;
+        document.getElementById('type').value = type;
+        handleTypeChange();
+        document.getElementById('category').value = category;
+    }
+
     function togglePendingService() {
         const isPending = document.getElementById('is-pending-service').checked;
         const accountGroup = document.getElementById('account-group');
@@ -600,7 +752,7 @@
         if (isPending) {
             accountGroup.style.display = 'none';
             personGroup.style.display = 'block';
-            personLabel.textContent = 'Nombre del Cliente / Persona que debe el viaje';
+            personLabel.textContent = 'Nombre del Cliente (Viaje / Pedido)';
         } else {
             accountGroup.style.display = 'block';
             personGroup.style.display = 'none';
@@ -608,6 +760,9 @@
     }
 
     function handleTypeChange() {
+        const tab = document.getElementById('form-tab').value;
+        if (tab !== 'flow') return;
+
         const type = document.getElementById('type').value;
         const categoryGroup = document.getElementById('category-group');
         const personGroup = document.getElementById('person-group');
@@ -633,22 +788,16 @@
             pendingGroup.style.display = 'none';
             document.getElementById('is-pending-service').checked = false;
             accountGroup.style.display = 'block';
+            categoryGroup.style.display = 'block';
+            personGroup.style.display = 'none';
 
-            if (type === 'egreso' || type === 'ajuste_saldo') {
-                categoryGroup.style.display = 'block';
-                personGroup.style.display = 'none';
-                categorySelect.innerHTML = '';
-                categories[type].forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat;
-                    option.textContent = cat;
-                    categorySelect.appendChild(option);
-                });
-            } else {
-                categoryGroup.style.display = 'none';
-                personGroup.style.display = 'block';
-                document.getElementById('person-label').textContent = 'Nombre de la Persona / Entidad';
-            }
+            categorySelect.innerHTML = '';
+            categories.egreso.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
         }
     }
 
@@ -702,13 +851,12 @@
         saveAndRender();
     }
 
-    // Confirmar pago de un servicio/viaje que estaba pendiente
     function confirmPendingIncome(id) {
         const item = transactions.find(t => t.id === id);
         if (!item || item.status === 'completado') return;
 
         const selectedAccount = prompt(
-            `El cliente/servicio "${item.person || item.category}" pagó ${formatCurrency(item.amount)}.\n` +
+            `Servicio de "${item.person || item.category}" pagó ${formatCurrency(item.amount)}.\n` +
             `¿A qué cuenta entró el dinero?\n\n` +
             `1: Efectivo (Cartera)\n` +
             `2: Banamex (Débito)\n` +
@@ -724,63 +872,18 @@
             case '2': targetAccount = 'Banamex (Débito)'; break;
             case '3': targetAccount = 'Nu (Débito)'; break;
             case '4': targetAccount = 'Mercado Pago (Débito)'; break;
-            default:
-                alert('Opción no válida. Intenta de nuevo.');
-                return;
+            default: alert('Opción no válida.'); return;
         }
 
         item.account = targetAccount;
         item.status = 'completado';
-        alert(`¡Pago confirmado! Se acreditaron ${formatCurrency(item.amount)} a la cuenta: ${targetAccount}`);
+        alert(`¡Pago confirmado en ${targetAccount}!`);
         saveAndRender();
     }
 
-    function toggleLoanStatus(id) {
-        const item = transactions.find(t => t.id === id);
-        if (item) {
-            item.status = item.status === 'pendiente' ? 'pagado' : 'pendiente';
-            saveAndRender();
-        }
-    }
-
-    function addPartialPayment(id) {
-        const item = transactions.find(t => t.id === id);
-        if (!item || item.status === 'pagado') return;
-
-        const inputAmount = prompt(`Monto actual pendiente: ${formatCurrency(item.amount)}\n¿Cuánto se abonará?`);
-        if (inputAmount === null) return;
-
-        const partialVal = parseFloat(inputAmount);
-
-        if (isNaN(partialVal) || partialVal <= 0) {
-            alert('Por favor, ingresa un monto válido.');
-            return;
-        }
-
-        if (partialVal >= item.amount) {
-            if (confirm('El abono es igual o mayor al saldo actual. ¿Deseas marcar la deuda como TOTALMENTE PAGADA?')) {
-                item.status = 'pagado';
-            }
-        } else {
-            item.amount -= partialVal;
-
-            const isRecibido = item.type === 'prestamo_recibido';
-            const paymentRecord = {
-                id: Date.now(),
-                type: isRecibido ? 'egreso' : 'ingreso',
-                account: item.account || 'Efectivo (Cartera)',
-                category: 'Abono / Pago Cuentas',
-                person: item.person,
-                amount: partialVal,
-                date: new Date().toISOString().slice(0, 10),
-                description: `Abono de ${item.person}`,
-                status: 'completado'
-            };
-            transactions.push(paymentRecord);
-            alert(`Abono de ${formatCurrency(partialVal)} registrado correctamente. Saldo restante: ${formatCurrency(item.amount)}`);
-        }
-
-        saveAndRender();
+    function sendWhatsAppReminder(personName, amount) {
+        const msg = encodeURIComponent(`Hola ${personName}, te saludo cordialmente. Te comparto el recordatorio de tu saldo pendiente actual de ${formatCurrency(amount)}. ¡Quedo atento, gracias!`);
+        window.open(`https://wa.me/?text=${msg}`, '_blank');
     }
 
     function setPeriod(period, btn) {
@@ -792,8 +895,18 @@
 
     function getFilteredTransactions() {
         const now = new Date();
+        const searchWord = document.getElementById('search-input') ? document.getElementById('search-input').value.toLowerCase().trim() : '';
         
         return transactions.filter(t => {
+            // Filtro por palabra clave
+            if (searchWord !== '') {
+                const matchPerson = t.person && t.person.toLowerCase().includes(searchWord);
+                const matchCategory = t.category && t.category.toLowerCase().includes(searchWord);
+                const matchDesc = t.description && t.description.toLowerCase().includes(searchWord);
+                const matchAcc = t.account && t.account.toLowerCase().includes(searchWord);
+                if (!matchPerson && !matchCategory && !matchDesc && !matchAcc) return false;
+            }
+
             if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado' || (t.type === 'ingreso' && t.status === 'pendiente')) return true;
 
             const [year, month, day] = t.date.split('-').map(Number);
@@ -842,6 +955,35 @@
         alertBanner.style.display = hasAlerts ? 'block' : 'none';
     }
 
+    function updateChart(expenseCategories) {
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        const labels = Object.keys(expenseCategories);
+        const data = Object.values(expenseCategories);
+
+        if (expenseChartInstance) {
+            expenseChartInstance.destroy();
+        }
+
+        if (labels.length === 0) return;
+
+        expenseChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#0284c7', '#8b5cf6', '#ec4899', '#64748b']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
     function renderData() {
         const filtered = getFilteredTransactions();
         const tbody = document.getElementById('transaction-list');
@@ -853,6 +995,7 @@
         let totalLentPending = 0;
 
         const peopleBalance = {};
+        const expenseByCategory = {};
 
         const accountBalances = {
             "Efectivo (Cartera)": 0,
@@ -866,7 +1009,6 @@
         transactions.forEach(t => {
             const acc = t.account || "Efectivo (Cartera)";
 
-            // Solo sumar a saldos de cuentas si el ingreso ya fue completado/cobrado
             if (t.type === 'ingreso' && t.status === 'completado') {
                 if (acc.includes('Crédito')) {
                     accountBalances[acc] -= t.amount;
@@ -885,7 +1027,6 @@
                 }
             }
 
-            // Préstamos o ingresos pendientes de cobro
             if (t.type === 'prestamo_recibido' && t.status === 'pendiente') {
                 totalBorrowedPending += t.amount;
                 peopleBalance[t.person] = (peopleBalance[t.person] || 0) - t.amount;
@@ -896,96 +1037,96 @@
             }
             if (t.type === 'ingreso' && t.status === 'pendiente') {
                 totalLentPending += t.amount;
-                const clientName = t.person ? `Cliente: ${t.person}` : `Servicio Pendiente (${t.category})`;
+                const clientName = t.person ? `Cliente: ${t.person}` : `Servicio (${t.category})`;
                 peopleBalance[clientName] = (peopleBalance[clientName] || 0) + t.amount;
             }
         });
 
-        const accountsTbody = document.getElementById('accounts-balance-list');
-        accountsTbody.innerHTML = '';
-
+        // Dibujar Tarjetas Bancarias
+        const cardsContainer = document.getElementById('bank-cards-container');
+        cardsContainer.innerHTML = '';
         const showAll = document.getElementById('show-all-accounts').checked;
-        let activeAccountsCount = 0;
+
+        const cardStyles = {
+            "Efectivo (Cartera)": { class: "card-efectivo", title: "💵 Efectivo Cartera" },
+            "Banamex (Débito)": { class: "card-banamex", title: "🏦 Banamex Débito" },
+            "Nu (Débito)": { class: "card-nu", title: "💜 Nu Débito" },
+            "Mercado Pago (Débito)": { class: "card-mercadopago", title: "💙 Mercado Pago" },
+            "Tarjeta Crédito Nu": { class: "card-credito-nu", title: "💳 Crédito Nu" },
+            "Tarjeta Crédito Mercado Pago": { class: "card-credito-mp", title: "💳 Crédito Mercado Pago" }
+        };
 
         Object.keys(accountBalances).forEach(acc => {
             const val = accountBalances[acc];
-            const isCredit = acc.includes('Crédito');
-
             if (!showAll && val === 0) return;
 
-            activeAccountsCount++;
-            const tr = document.createElement('tr');
+            const isCredit = acc.includes('Crédito');
+            const style = cardStyles[acc] || { class: "card-efectivo", title: acc };
+            const config = cardConfigs[acc] || { cutoff: '-', payment: '-' };
 
-            let displayStatus = '';
-            let valClass = '';
+            const cardDiv = document.createElement('div');
+            cardDiv.className = `bank-card ${style.class}`;
+            
+            let amountText = '';
+            let subText = '';
 
             if (isCredit) {
-                const config = cardConfigs[acc] || { cutoff: '-', payment: '-' };
                 if (val > 0) {
-                    displayStatus = `Debes ${formatCurrency(val)} (Corte: ${config.cutoff} / Pago: ${config.payment})`;
-                    valClass = 'val-negative';
-                } else if (val < 0) {
-                    displayStatus = `Saldo a favor ${formatCurrency(Math.abs(val))}`;
-                    valClass = 'val-positive';
+                    amountText = `-${formatCurrency(val)}`;
+                    subText = `Deuda • Pago Día ${config.payment}`;
                 } else {
-                    displayStatus = `${formatCurrency(0)} (Al corriente)`;
-                    valClass = 'val-positive';
+                    amountText = formatCurrency(Math.abs(val));
+                    subText = `Al corriente • Corte Día ${config.cutoff}`;
                 }
             } else {
-                if (val >= 0) {
-                    displayStatus = `${formatCurrency(val)} disponible`;
-                    valClass = 'val-positive';
-                } else {
-                    displayStatus = `-${formatCurrency(Math.abs(val))} (Sobrepasado)`;
-                    valClass = 'val-negative';
-                }
+                amountText = formatCurrency(val);
+                subText = val >= 0 ? "Disponible" : "Sobrepasado";
             }
 
-            tr.innerHTML = `
-                <td><strong>${acc}</strong></td>
-                <td><small>${isCredit ? 'Crédito' : 'Débito / Efectivo'}</small></td>
-                <td class="${valClass}">${displayStatus}</td>
+            cardDiv.innerHTML = `
+                <div>
+                    <div class="card-title">${style.title}</div>
+                    <div class="card-amount">${amountText}</div>
+                </div>
+                <div class="card-subtext">${subText}</div>
             `;
-            accountsTbody.appendChild(tr);
+            cardsContainer.appendChild(cardDiv);
         });
 
-        if (activeAccountsCount === 0) {
-            accountsTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">No hay saldos o deudas activas en este momento.</td></tr>';
+        if (cardsContainer.children.length === 0) {
+            cardsContainer.innerHTML = '<p style="font-size:0.8rem; color:#94a3b8; grid-column: 1/-1; text-align:center;">No hay saldos o deudas activas en este momento.</p>';
         }
 
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         filtered.forEach(t => {
             if (t.type === 'ingreso' && t.status === 'completado') incomeSum += t.amount;
-            if (t.type === 'egreso') expenseSum += t.amount;
+            if (t.type === 'egreso') {
+                expenseSum += t.amount;
+                expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + t.amount;
+            }
 
             let typeLabel = '';
             let detail = '';
 
-            if (t.type === 'ingreso') { typeLabel = 'INGRESO'; detail = `${t.category} ${t.person ? '(' + t.person + ')' : ''} (${t.description})`; }
+            if (t.type === 'ingreso') { typeLabel = 'INGRESO'; detail = `${t.category} ${t.person ? '(' + t.person + ')' : ''}`; }
             else if (t.type === 'egreso') { typeLabel = 'EGRESO'; detail = `${t.category} (${t.description})`; }
-            else if (t.type === 'prestamo_recibido') { typeLabel = 'ME PRESTARON'; detail = `De: ${t.person} (${t.description})`; }
-            else if (t.type === 'prestamo_otorgado') { typeLabel = 'PRESTÉ'; detail = `A: ${t.person} (${t.description})`; }
-            else if (t.type === 'ajuste_saldo') { typeLabel = 'AJUSTE / INICIAL'; detail = `${t.category} (${t.description})`; }
+            else if (t.type === 'prestamo_recibido') { typeLabel = 'DEUDA'; detail = `De: ${t.person}`; }
+            else if (t.type === 'prestamo_otorgado') { typeLabel = 'PRESTÉ'; detail = `A: ${t.person}`; }
+            else if (t.type === 'ajuste_saldo') { typeLabel = 'AJUSTE'; detail = `${t.category}`; }
 
-            const isLoan = t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado';
             const isPendingIncome = t.type === 'ingreso' && t.status === 'pendiente';
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${t.date}</td>
-                <td><small>${t.account || 'Efectivo (Cartera)'}</small></td>
+                <td><small>${t.account}</small></td>
                 <td class="type-${t.type}">${typeLabel}</td>
                 <td>${detail}</td>
                 <td class="${t.type === 'ingreso' ? 'val-positive' : t.type === 'egreso' ? 'val-negative' : ''}">${formatCurrency(t.amount)}</td>
                 <td>
-                    ${(isLoan || isPendingIncome) ? `<span class="status-badge status-${t.status}">${t.status.toUpperCase()}</span>` : '-'}
-                </td>
-                <td>
                     <div class="action-btns">
-                        ${isPendingIncome ? `<button class="pay-btn" onclick="confirmPendingIncome(${t.id})">💳 Confirmar Pago</button>` : ''}
-                        ${isLoan && t.status === 'pendiente' ? `<button class="partial-btn" onclick="addPartialPayment(${t.id})">➕</button>` : ''}
-                        ${isLoan ? `<button class="pay-btn" onclick="toggleLoanStatus(${t.id})">${t.status === 'pendiente' ? '✓' : '↩'}</button>` : ''}
+                        ${isPendingIncome ? `<button class="pay-btn" onclick="confirmPendingIncome(${t.id})">💳 Cobrar</button>` : ''}
                         <button class="delete-btn" onclick="deleteTransaction(${t.id})">✕</button>
                     </div>
                 </td>
@@ -993,12 +1134,13 @@
             tbody.appendChild(tr);
         });
 
+        // Renderizar tabla de deudores y botón WhatsApp
         const peopleTbody = document.getElementById('people-balance-list');
         peopleTbody.innerHTML = '';
         const peopleNames = Object.keys(peopleBalance);
 
         if (peopleNames.length === 0) {
-            peopleTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">No hay préstamos o cobros pendientes</td></tr>';
+            peopleTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">No hay saldos pendientes</td></tr>';
         } else {
             peopleNames.forEach(person => {
                 const balance = peopleBalance[person];
@@ -1011,6 +1153,9 @@
                         <td><strong>${person}</strong></td>
                         <td class="${colorClass}">${statusText}</td>
                         <td class="${colorClass}"><strong>${formatCurrency(Math.abs(balance))}</strong></td>
+                        <td>
+                            ${balance > 0 ? `<button class="ws-btn" onclick="sendWhatsAppReminder('${person}', ${balance})">📱 Recordar</button>` : '-'}
+                        </td>
                     `;
                     peopleTbody.appendChild(tr);
                 }
@@ -1029,6 +1174,25 @@
         document.getElementById('total-lent').textContent = formatCurrency(totalLentPending);
 
         checkCardAlerts();
+        updateChart(expenseByCategory);
+    }
+
+    function exportCSV() {
+        if (transactions.length === 0) {
+            alert('No hay datos para exportar.');
+            return;
+        }
+        let csvContent = "data:text/csv;charset=utf-8,Fecha,Cuenta,Tipo,Categoria,Persona,Monto,Estado,Descripcion\n";
+        transactions.forEach(t => {
+            csvContent += `${t.date},"${t.account}",${t.type},"${t.category || ''}","${t.person || ''}",${t.amount},${t.status},"${t.description || ''}"\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `finanzas_reporte_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
     }
 
     function exportJSON() {
@@ -1036,15 +1200,11 @@
             alert('No hay datos registrados para exportar.');
             return;
         }
-        const backupData = {
-            transactions: transactions,
-            cardConfigs: cardConfigs
-        };
+        const backupData = { transactions, cardConfigs };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
         const downloadAnchor = document.createElement('a');
-        const fileName = `respaldo_finanzas_${new Date().toISOString().slice(0,10)}.json`;
         downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", fileName);
+        downloadAnchor.setAttribute("download", `respaldo_finanzas_${new Date().toISOString().slice(0,10)}.json`);
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
@@ -1060,10 +1220,10 @@
                         transactions = importedData.transactions || importedData;
                         if (importedData.cardConfigs) cardConfigs = importedData.cardConfigs;
                         saveAndRender();
-                        alert('¡Datos importados con éxito!');
+                        alert('¡Datos cargados con éxito!');
                     }
                 } else {
-                    alert('El archivo cargado no tiene un formato válido.');
+                    alert('Archivo JSON no válido.');
                 }
             } catch (error) {
                 alert('Error al leer el archivo JSON.');
@@ -1074,7 +1234,7 @@
         }
     }
 
-    handleTypeChange();
+    switchTab('flow');
     renderData();
 </script>
 
