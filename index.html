@@ -417,6 +417,17 @@
             margin-top: 2px;
         }
 
+        .pending-badge {
+            background-color: #fef3c7;
+            color: #d97706;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+
         .show-all-toggle {
             font-size: 0.78rem;
             color: var(--text-muted);
@@ -486,10 +497,11 @@
                 </select>
             </div>
 
+            <!-- Casilla de Pendiente de Cobro o Pago -->
             <div id="pending-service-group">
                 <label class="checkbox-container">
                     <input type="checkbox" id="is-pending-service" onchange="togglePendingService()">
-                    ⏳ Dejar como pendiente de cobro (El cliente no ha pagado)
+                    <span id="pending-checkbox-label">⏳ Dejar como pendiente de cobro (El cliente no ha pagado)</span>
                 </label>
             </div>
 
@@ -575,7 +587,7 @@
 
             <div class="form-group">
                 <label for="description">Descripción / Notas</label>
-                <input type="text" id="description" placeholder="Ej. Viaje centro, Despensa, Movimiento de efectivo">
+                <input type="text" id="description" placeholder="Ej. Viaje centro, Despensa, Recibo de Luz por pagar">
             </div>
 
             <button type="submit" class="btn-primary">Guardar Movimiento</button>
@@ -627,14 +639,14 @@
 
     <!-- Préstamos y Pendientes -->
     <div class="card">
-        <h2>🤝 Préstamos y Cobros Pendientes</h2>
+        <h2>🤝 Préstamos y Cobros/Pagos Pendientes</h2>
         <div class="dashboard-cards" style="margin-bottom: 12px;">
             <div class="metric-card">
-                <p>Debo (Me prestaron)</p>
+                <p>Debo / Pendiente Pagar</p>
                 <h3 id="total-borrowed" class="val-negative">$0.00</h3>
             </div>
             <div class="metric-card">
-                <p>Me deben (Servicios/Préstamos)</p>
+                <p>Me deben / Pendiente Cobrar</p>
                 <h3 id="total-lent" class="val-positive">$0.00</h3>
             </div>
         </div>
@@ -643,10 +655,10 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Persona / Cliente</th>
+                        <th>Persona / Concepto</th>
                         <th>Estado</th>
                         <th>Pendiente</th>
-                        <th>Cobrar</th>
+                        <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody id="people-balance-list"></tbody>
@@ -882,11 +894,12 @@
         const accountGroup = document.getElementById('account-group');
         const personGroup = document.getElementById('person-group');
         const personLabel = document.getElementById('person-label');
+        const type = document.getElementById('type').value;
 
         if (isPending) {
             accountGroup.style.display = 'none';
             personGroup.style.display = 'block';
-            personLabel.textContent = 'Nombre del Cliente (Viaje / Pedido)';
+            personLabel.textContent = type === 'ingreso' ? 'Nombre del Cliente' : 'A quién se le debe (Acreedor / Servicio)';
         } else {
             accountGroup.style.display = 'block';
             personGroup.style.display = 'none';
@@ -902,11 +915,14 @@
         const personGroup = document.getElementById('person-group');
         const categorySelect = document.getElementById('category');
         const pendingGroup = document.getElementById('pending-service-group');
+        const pendingLabel = document.getElementById('pending-checkbox-label');
         const accountGroup = document.getElementById('account-group');
         const isPending = document.getElementById('is-pending-service').checked;
 
+        pendingGroup.style.display = 'block';
+
         if (type === 'ingreso') {
-            pendingGroup.style.display = 'block';
+            pendingLabel.textContent = '⏳ Dejar como pendiente de cobro (El cliente no ha pagado)';
             categoryGroup.style.display = 'block';
             accountGroup.style.display = isPending ? 'none' : 'block';
             personGroup.style.display = isPending ? 'block' : 'none';
@@ -919,11 +935,10 @@
                 categorySelect.appendChild(option);
             });
         } else {
-            pendingGroup.style.display = 'none';
-            document.getElementById('is-pending-service').checked = false;
-            accountGroup.style.display = 'block';
+            pendingLabel.textContent = '⏳ Dejar como pendiente de pago (Aún no lo pago)';
+            accountGroup.style.display = isPending ? 'none' : 'block';
             categoryGroup.style.display = 'block';
-            personGroup.style.display = 'none';
+            personGroup.style.display = isPending ? 'block' : 'none';
 
             categorySelect.innerHTML = '';
             categories.egreso.forEach(cat => {
@@ -954,9 +969,9 @@
         const tabName = document.getElementById('form-tab').value;
         const type = document.getElementById('type').value;
         const isLoan = type === 'prestamo_recibido' || type === 'prestamo_otorgado';
-        const isPendingService = (type === 'ingreso' && document.getElementById('is-pending-service').checked);
+        const isPending = (tabName === 'flow' && document.getElementById('is-pending-service').checked);
 
-        const accountVal = isPendingService ? 'Pendiente' : document.getElementById('account').value;
+        const accountVal = isPending ? 'Pendiente' : document.getElementById('account').value;
         const targetAccountVal = document.getElementById('target-account').value;
 
         if (tabName === 'transfer' && accountVal === targetAccountVal) {
@@ -980,13 +995,13 @@
             account: (accountVal && accountVal !== 'undefined') ? accountVal : 'Efectivo (Cartera)',
             targetAccount: tabName === 'transfer' ? targetAccountVal : '',
             category: (isLoan || tabName === 'transfer') ? '' : document.getElementById('category').value,
-            person: (isLoan || isPendingService) ? document.getElementById('person').value.trim() : '',
+            person: (isLoan || isPending) ? document.getElementById('person').value.trim() : '',
             amount: finalAmount,
             msi: msiMonths,
             hasInterest: hasInterest,
             date: document.getElementById('date').value,
             description: document.getElementById('description').value || '-',
-            status: (isLoan || isPendingService) ? 'pendiente' : 'completado'
+            status: (isLoan || isPending) ? 'pendiente' : 'completado'
         };
 
         transactions.push(newRecord);
@@ -1011,18 +1026,23 @@
         saveAndRender();
     }
 
-    function confirmPendingIncome(id) {
+    function confirmPendingTransaction(id) {
         const item = transactions.find(t => t.id === id);
         if (!item || item.status === 'completado') return;
 
+        const actionText = item.type === 'ingreso' ? 'cobro' : 'pago';
+        const verbText = item.type === 'ingreso' ? 'entró' : 'salió';
+
         const selectedAccount = prompt(
-            `Servicio de "${item.person || item.category}" pagó ${formatCurrency(item.amount)}.\n` +
-            `¿A qué cuenta entró el dinero?\n\n` +
+            `Confirmar ${actionText} de "${item.person || item.category}" por ${formatCurrency(item.amount)}.\n` +
+            `¿De qué cuenta ${verbText} el dinero?\n\n` +
             `1: Efectivo (Cartera)\n` +
             `2: Bote Local (Efectivo)\n` +
             `3: Banamex (Débito)\n` +
             `4: Nu (Débito)\n` +
-            `5: Mercado Pago (Débito)`
+            `5: Mercado Pago (Débito)\n` +
+            `6: Tarjeta Crédito Mercado Pago\n` +
+            `7: Tarjeta Crédito Nu`
         );
 
         if (selectedAccount === null) return;
@@ -1034,12 +1054,14 @@
             case '3': targetAccount = 'Banamex (Débito)'; break;
             case '4': targetAccount = 'Nu (Débito)'; break;
             case '5': targetAccount = 'Mercado Pago (Débito)'; break;
+            case '6': targetAccount = 'Tarjeta Crédito Mercado Pago'; break;
+            case '7': targetAccount = 'Tarjeta Crédito Nu'; break;
             default: alert('Opción no válida.'); return;
         }
 
         item.account = targetAccount;
         item.status = 'completado';
-        alert(`¡Pago confirmado en ${targetAccount}!`);
+        alert(`¡Movimiento confirmado en ${targetAccount}!`);
         saveAndRender();
     }
 
@@ -1071,7 +1093,7 @@
 
             if (currentPeriod === 'all') return true;
 
-            if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado' || (t.type === 'ingreso' && t.status === 'pendiente')) return true;
+            if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado' || t.status === 'pendiente') return true;
 
             if (currentPeriod === 'day') return t.date === todayStr;
 
@@ -1186,20 +1208,18 @@
                 } else if (accountBalances.hasOwnProperty(acc)) {
                     accountBalances[acc] += t.amount;
                 }
-            } else if (t.type === 'egreso') {
+            } else if (t.type === 'egreso' && t.status === 'completado') {
                 if (acc.includes('Crédito')) {
                     accountBalances[acc] += t.amount;
                 } else if (accountBalances.hasOwnProperty(acc)) {
                     accountBalances[acc] -= t.amount;
                 }
             } else if (t.type === 'transferencia') {
-                // Descontar de cuenta origen
                 if (acc.includes('Crédito')) {
                     accountBalances[acc] += t.amount;
                 } else if (accountBalances.hasOwnProperty(acc)) {
                     accountBalances[acc] -= t.amount;
                 }
-                // Sumar en cuenta destino
                 let targetAcc = t.targetAccount;
                 if (targetAcc && targetAcc.includes('Crédito')) {
                     accountBalances[targetAcc] -= t.amount;
@@ -1212,9 +1232,15 @@
                 }
             }
 
+            // Gestión de deudas y pendientes
             if (t.type === 'prestamo_recibido' && t.status === 'pendiente') {
                 totalBorrowedPending += t.amount;
                 peopleBalance[t.person] = (peopleBalance[t.person] || 0) - t.amount;
+            }
+            if (t.type === 'egreso' && t.status === 'pendiente') {
+                totalBorrowedPending += t.amount;
+                const concept = t.person ? `Por Pagar: ${t.person}` : `Por Pagar (${t.category})`;
+                peopleBalance[concept] = (peopleBalance[concept] || 0) - t.amount;
             }
             if (t.type === 'prestamo_otorgado' && t.status === 'pendiente') {
                 totalLentPending += t.amount;
@@ -1291,7 +1317,7 @@
 
         filtered.forEach(t => {
             if (t.type === 'ingreso' && t.status === 'completado') incomeSum += t.amount;
-            if (t.type === 'egreso') {
+            if (t.type === 'egreso' && t.status === 'completado') {
                 expenseSum += t.amount;
                 expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + t.amount;
             }
@@ -1306,16 +1332,18 @@
             else if (t.type === 'prestamo_otorgado') { typeLabel = 'PRESTÉ'; detail = `A: ${t.person}`; }
             else if (t.type === 'ajuste_saldo') { typeLabel = 'AJUSTE'; detail = `${t.category}`; }
 
-            const isPendingIncome = t.type === 'ingreso' && t.status === 'pendiente';
-            const displayAccount = (!t.account || t.account === 'undefined') ? 'Efectivo (Cartera)' : t.account;
+            const isPending = t.status === 'pendiente' && (t.type === 'ingreso' || t.type === 'egreso');
+            const displayAccount = (!t.account || t.account === 'undefined' || t.status === 'pendiente') ? 'Pendiente' : t.account;
 
-            let msiInfo = '';
-            if (t.msi && t.msi > 1) {
+            let extraBadge = '';
+            if (t.status === 'pendiente') {
+                extraBadge = `<br><span class="pending-badge">⏳ Pendiente (${t.type === 'ingreso' ? 'Por cobrar' : 'Por pagar'})</span>`;
+            } else if (t.msi && t.msi > 1) {
                 const monthlyPayment = t.amount / t.msi;
                 if (t.hasInterest) {
-                    msiInfo = `<br><span class="mci-badge">💳 ${t.msi} Meses (${formatCurrency(monthlyPayment)}/mes con int.)</span>`;
+                    extraBadge = `<br><span class="mci-badge">💳 ${t.msi} Meses (${formatCurrency(monthlyPayment)}/mes con int.)</span>`;
                 } else {
-                    msiInfo = `<br><span class="msi-badge">💳 ${t.msi} MSI (${formatCurrency(monthlyPayment)}/mes)</span>`;
+                    extraBadge = `<br><span class="msi-badge">💳 ${t.msi} MSI (${formatCurrency(monthlyPayment)}/mes)</span>`;
                 }
             }
 
@@ -1324,11 +1352,11 @@
                 <td>${t.date}</td>
                 <td><small>${displayAccount}</small></td>
                 <td class="type-${t.type}">${typeLabel}</td>
-                <td>${detail} ${msiInfo}</td>
+                <td>${detail} ${extraBadge}</td>
                 <td class="${t.type === 'ingreso' ? 'val-positive' : t.type === 'egreso' ? 'val-negative' : ''}">${formatCurrency(t.amount)}</td>
                 <td>
                     <div class="action-btns">
-                        ${isPendingIncome ? `<button class="pay-btn" onclick="confirmPendingIncome(${t.id})">💳 Cobrar</button>` : ''}
+                        ${isPending ? `<button class="pay-btn" onclick="confirmPendingTransaction(${t.id})">${t.type === 'ingreso' ? '💳 Cobrar' : '💸 Pagar'}</button>` : ''}
                         <button class="delete-btn" onclick="deleteTransaction(${t.id})">✕</button>
                     </div>
                 </td>
@@ -1347,7 +1375,7 @@
                 const balance = peopleBalance[person];
                 if (balance !== 0) {
                     const tr = document.createElement('tr');
-                    const statusText = balance > 0 ? 'Te debe' : 'Le debes';
+                    const statusText = balance > 0 ? 'Te debe / Por cobrar' : 'Le debes / Por pagar';
                     const colorClass = balance > 0 ? 'val-positive' : 'val-negative';
 
                     tr.innerHTML = `
