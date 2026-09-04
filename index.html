@@ -18,6 +18,7 @@
             --expense-color: #ef4444;
             --borrowed-color: #f59e0b;
             --lent-color: #0284c7;
+            --transfer-color: #8b5cf6;
             --border-color: #e2e8f0;
             --radius: 14px;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
@@ -145,6 +146,7 @@
         }
 
         .card-efectivo { background: linear-gradient(135deg, #059669, #10b981); }
+        .card-bote { background: linear-gradient(135deg, #d97706, #f59e0b); }
         .card-banamex { background: linear-gradient(135deg, #0284c7, #2563eb); }
         .card-nu { background: linear-gradient(135deg, #820ad1, #a855f7); }
         .card-mercadopago { background: linear-gradient(135deg, #009ee3, #00b9ff); }
@@ -153,17 +155,18 @@
 
         .tabs-container {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             background: #f1f5f9;
             padding: 4px;
             border-radius: 10px;
             margin-bottom: 14px;
+            overflow-x: auto;
         }
 
         .tab-btn {
             flex: 1;
             padding: 8px 4px;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             font-weight: 700;
             border: none;
             border-radius: 8px;
@@ -172,6 +175,7 @@
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
+            white-space: nowrap;
         }
 
         .tab-btn.active {
@@ -338,6 +342,7 @@
 
         .type-ingreso { color: var(--income-color); font-weight: 700; }
         .type-egreso { color: var(--expense-color); font-weight: 700; }
+        .type-transferencia { color: var(--transfer-color); font-weight: 700; }
         .type-prestamo_recibido { color: var(--borrowed-color); font-weight: 700; }
         .type-prestamo_otorgado { color: var(--lent-color); font-weight: 700; }
 
@@ -454,6 +459,7 @@
 
         <div class="tabs-container">
             <button class="tab-btn active" onclick="switchTab('flow')">📈 Ingreso / Gasto</button>
+            <button class="tab-btn" onclick="switchTab('transfer')">🔄 Transferir</button>
             <button class="tab-btn" onclick="switchTab('loan')">🤝 Préstamo</button>
             <button class="tab-btn" onclick="switchTab('adjust')">⚙️ Saldo Inicial</button>
         </div>
@@ -487,9 +493,25 @@
                 </label>
             </div>
 
+            <!-- Cuenta de origen -->
             <div class="form-group" id="account-group">
-                <label for="account">Cuenta / Tarjeta / Cartera</label>
+                <label for="account" id="account-label">Cuenta / Tarjeta / Cartera</label>
                 <select id="account" onchange="handleAccountChange()" required>
+                    <option value="Efectivo (Cartera)">💵 Efectivo (Cartera)</option>
+                    <option value="Bote Local (Efectivo)">🏺 Bote Local (Efectivo)</option>
+                    <option value="Banamex (Débito)">🏦 Banamex (Débito)</option>
+                    <option value="Nu (Débito)">💜 Nu (Débito)</option>
+                    <option value="Mercado Pago (Débito)">💙 Mercado Pago (Débito)</option>
+                    <option value="Tarjeta Crédito Mercado Pago">💳 Tarjeta Crédito Mercado Pago</option>
+                    <option value="Tarjeta Crédito Nu">💳 Tarjeta Crédito Nu</option>
+                </select>
+            </div>
+
+            <!-- Cuenta destino (solo para transferencias) -->
+            <div class="form-group" id="target-account-group" style="display: none;">
+                <label for="target-account">Cuenta Destino</label>
+                <select id="target-account">
+                    <option value="Bote Local (Efectivo)">🏺 Bote Local (Efectivo)</option>
                     <option value="Efectivo (Cartera)">💵 Efectivo (Cartera)</option>
                     <option value="Banamex (Débito)">🏦 Banamex (Débito)</option>
                     <option value="Nu (Débito)">💜 Nu (Débito)</option>
@@ -499,6 +521,7 @@
                 </select>
             </div>
 
+            <!-- Sección de Mensualidades Mercado Libre / Tarjetas -->
             <div id="msi-group" style="display: none; background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 12px;">
                 <div class="form-group">
                     <label for="msi-months">Plan de Mensualidades Mercado Libre</label>
@@ -552,7 +575,7 @@
 
             <div class="form-group">
                 <label for="description">Descripción / Notas</label>
-                <input type="text" id="description" placeholder="Ej. Viaje centro, Despensa, Compra Mercado Libre">
+                <input type="text" id="description" placeholder="Ej. Viaje centro, Despensa, Movimiento de efectivo">
             </div>
 
             <button type="submit" class="btn-primary">Guardar Movimiento</button>
@@ -699,7 +722,6 @@
         ajuste_saldo: ['Saldo Inicial', 'Corrección de Balance']
     };
 
-    // Función para obtener la fecha local exacta del dispositivo (YYYY-MM-DD)
     function getLocalDateString() {
         const d = new Date();
         const year = d.getFullYear();
@@ -729,7 +751,6 @@
     let currentPeriod = 'all';
     let expenseChartInstance = null;
 
-    // Asignar fecha local al cargar la página
     document.getElementById('date').value = getLocalDateString();
 
     function formatCurrency(amount) {
@@ -787,10 +808,15 @@
         const opTypeGroup = document.getElementById('operation-type-group');
         const pendingGroup = document.getElementById('pending-service-group');
         const accountGroup = document.getElementById('account-group');
+        const targetAccountGroup = document.getElementById('target-account-group');
         const personGroup = document.getElementById('person-group');
         const categoryGroup = document.getElementById('category-group');
         const typeSelect = document.getElementById('type');
         const quickBar = document.getElementById('quick-bar');
+        const accountLabel = document.getElementById('account-label');
+
+        targetAccountGroup.style.display = 'none';
+        accountLabel.textContent = 'Cuenta / Tarjeta / Cartera';
 
         if (tabName === 'flow') {
             opTypeGroup.style.display = 'block';
@@ -800,6 +826,16 @@
                 <option value="egreso">Egreso (Gasto / Compra)</option>
             `;
             handleTypeChange();
+        } else if (tabName === 'transfer') {
+            opTypeGroup.style.display = 'none';
+            pendingGroup.style.display = 'none';
+            accountGroup.style.display = 'block';
+            targetAccountGroup.style.display = 'block';
+            categoryGroup.style.display = 'none';
+            personGroup.style.display = 'none';
+            quickBar.style.display = 'none';
+            accountLabel.textContent = 'Cuenta Origen (Sale el dinero)';
+            typeSelect.innerHTML = `<option value="transferencia" selected>Transferencia entre cuentas</option>`;
         } else if (tabName === 'loan') {
             opTypeGroup.style.display = 'block';
             pendingGroup.style.display = 'none';
@@ -915,11 +951,19 @@
     document.getElementById('finance-form').addEventListener('submit', function(e) {
         e.preventDefault();
 
+        const tabName = document.getElementById('form-tab').value;
         const type = document.getElementById('type').value;
         const isLoan = type === 'prestamo_recibido' || type === 'prestamo_otorgado';
         const isPendingService = (type === 'ingreso' && document.getElementById('is-pending-service').checked);
 
         const accountVal = isPendingService ? 'Pendiente' : document.getElementById('account').value;
+        const targetAccountVal = document.getElementById('target-account').value;
+
+        if (tabName === 'transfer' && accountVal === targetAccountVal) {
+            alert('La cuenta de origen y destino no pueden ser la misma.');
+            return;
+        }
+
         const msiMonths = parseInt(document.getElementById('msi-months').value) || 1;
         const hasInterest = document.getElementById('has-interest').value === 'yes';
         const rawAmount = parseFloat(document.getElementById('amount').value);
@@ -932,9 +976,10 @@
 
         const newRecord = {
             id: Date.now(),
-            type: type,
+            type: tabName === 'transfer' ? 'transferencia' : type,
             account: (accountVal && accountVal !== 'undefined') ? accountVal : 'Efectivo (Cartera)',
-            category: isLoan ? '' : document.getElementById('category').value,
+            targetAccount: tabName === 'transfer' ? targetAccountVal : '',
+            category: (isLoan || tabName === 'transfer') ? '' : document.getElementById('category').value,
             person: (isLoan || isPendingService) ? document.getElementById('person').value.trim() : '',
             amount: finalAmount,
             msi: msiMonths,
@@ -953,7 +998,7 @@
         document.getElementById('msi-months').value = '1';
         document.getElementById('has-interest').value = 'no';
         document.getElementById('financed-amount').value = '';
-        handleTypeChange();
+        switchTab('flow');
     });
 
     function saveAndRender() {
@@ -974,9 +1019,10 @@
             `Servicio de "${item.person || item.category}" pagó ${formatCurrency(item.amount)}.\n` +
             `¿A qué cuenta entró el dinero?\n\n` +
             `1: Efectivo (Cartera)\n` +
-            `2: Banamex (Débito)\n` +
-            `3: Nu (Débito)\n` +
-            `4: Mercado Pago (Débito)`
+            `2: Bote Local (Efectivo)\n` +
+            `3: Banamex (Débito)\n` +
+            `4: Nu (Débito)\n` +
+            `5: Mercado Pago (Débito)`
         );
 
         if (selectedAccount === null) return;
@@ -984,9 +1030,10 @@
         let targetAccount = '';
         switch(selectedAccount.trim()) {
             case '1': targetAccount = 'Efectivo (Cartera)'; break;
-            case '2': targetAccount = 'Banamex (Débito)'; break;
-            case '3': targetAccount = 'Nu (Débito)'; break;
-            case '4': targetAccount = 'Mercado Pago (Débito)'; break;
+            case '2': targetAccount = 'Bote Local (Efectivo)'; break;
+            case '3': targetAccount = 'Banamex (Débito)'; break;
+            case '4': targetAccount = 'Nu (Débito)'; break;
+            case '5': targetAccount = 'Mercado Pago (Débito)'; break;
             default: alert('Opción no válida.'); return;
         }
 
@@ -1018,7 +1065,8 @@
                 const matchCategory = t.category && t.category.toLowerCase().includes(searchWord);
                 const matchDesc = t.description && t.description.toLowerCase().includes(searchWord);
                 const matchAcc = t.account && t.account.toLowerCase().includes(searchWord);
-                if (!matchPerson && !matchCategory && !matchDesc && !matchAcc) return false;
+                const matchTargetAcc = t.targetAccount && t.targetAccount.toLowerCase().includes(searchWord);
+                if (!matchPerson && !matchCategory && !matchDesc && !matchAcc && !matchTargetAcc) return false;
             }
 
             if (currentPeriod === 'all') return true;
@@ -1117,6 +1165,7 @@
 
         const accountBalances = {
             "Efectivo (Cartera)": 0,
+            "Bote Local (Efectivo)": 0,
             "Banamex (Débito)": 0,
             "Nu (Débito)": 0,
             "Mercado Pago (Débito)": 0,
@@ -1142,6 +1191,20 @@
                     accountBalances[acc] += t.amount;
                 } else if (accountBalances.hasOwnProperty(acc)) {
                     accountBalances[acc] -= t.amount;
+                }
+            } else if (t.type === 'transferencia') {
+                // Descontar de cuenta origen
+                if (acc.includes('Crédito')) {
+                    accountBalances[acc] += t.amount;
+                } else if (accountBalances.hasOwnProperty(acc)) {
+                    accountBalances[acc] -= t.amount;
+                }
+                // Sumar en cuenta destino
+                let targetAcc = t.targetAccount;
+                if (targetAcc && targetAcc.includes('Crédito')) {
+                    accountBalances[targetAcc] -= t.amount;
+                } else if (targetAcc && accountBalances.hasOwnProperty(targetAcc)) {
+                    accountBalances[targetAcc] += t.amount;
                 }
             } else if (t.type === 'ajuste_saldo') {
                 if (accountBalances.hasOwnProperty(acc)) {
@@ -1170,6 +1233,7 @@
 
         const cardStyles = {
             "Efectivo (Cartera)": { class: "card-efectivo", title: "💵 Efectivo Cartera" },
+            "Bote Local (Efectivo)": { class: "card-bote", title: "🏺 Bote Local" },
             "Banamex (Débito)": { class: "card-banamex", title: "🏦 Banamex Débito" },
             "Nu (Débito)": { class: "card-nu", title: "💜 Nu Débito" },
             "Mercado Pago (Débito)": { class: "card-mercadopago", title: "💙 Mercado Pago" },
@@ -1237,6 +1301,7 @@
 
             if (t.type === 'ingreso') { typeLabel = 'INGRESO'; detail = `${t.category} ${t.person ? '(' + t.person + ')' : ''}`; }
             else if (t.type === 'egreso') { typeLabel = 'EGRESO'; detail = `${t.category} (${t.description})`; }
+            else if (t.type === 'transferencia') { typeLabel = 'TRANSFERENCIA'; detail = `Hacia: ${t.targetAccount} (${t.description})`; }
             else if (t.type === 'prestamo_recibido') { typeLabel = 'DEUDA'; detail = `De: ${t.person}`; }
             else if (t.type === 'prestamo_otorgado') { typeLabel = 'PRESTÉ'; detail = `A: ${t.person}`; }
             else if (t.type === 'ajuste_saldo') { typeLabel = 'AJUSTE'; detail = `${t.category}`; }
@@ -1318,9 +1383,9 @@
             alert('No hay datos para exportar.');
             return;
         }
-        let csvContent = "data:text/csv;charset=utf-8,Fecha,Cuenta,Tipo,Categoria,Persona,Monto,Meses,ConInteres,Estado,Descripcion\n";
+        let csvContent = "data:text/csv;charset=utf-8,Fecha,Cuenta,CuentaDestino,Tipo,Categoria,Persona,Monto,Meses,ConInteres,Estado,Descripcion\n";
         transactions.forEach(t => {
-            csvContent += `${t.date},"${t.account}",${t.type},"${t.category || ''}","${t.person || ''}",${t.amount},${t.msi || 1},${t.hasInterest ? 'SI' : 'NO'},${t.status},"${t.description || ''}"\n`;
+            csvContent += `${t.date},"${t.account}","${t.targetAccount || ''}",${t.type},"${t.category || ''}","${t.person || ''}",${t.amount},${t.msi || 1},${t.hasInterest ? 'SI' : 'NO'},${t.status},"${t.description || ''}"\n`;
         });
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
