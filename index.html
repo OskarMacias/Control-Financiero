@@ -370,6 +370,18 @@
             cursor: pointer;
         }
 
+        .abonar-btn {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: none;
+            padding: 4px 6px;
+            border-radius: 6px;
+            width: auto;
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
         .ws-btn {
             background: #dcfce7;
             color: #15803d;
@@ -1065,6 +1077,102 @@
         saveAndRender();
     }
 
+    // Función para abonar a Préstamos/Pendientes
+    function makeLoanPayment(personKey, totalAmount) {
+        const absAmount = Math.abs(totalAmount);
+        const isDebt = totalAmount < 0; // Si es negativo, yo debo. Si es positivo, me deben.
+
+        const amountInput = prompt(
+            `Abonar a: ${personKey}\n` +
+            `Saldo pendiente actual: ${formatCurrency(absAmount)}\n\n` +
+            `Ingresa la cantidad que deseas abonar:`,
+            absAmount.toString()
+        );
+
+        if (!amountInput) return;
+        const payVal = parseFloat(amountInput);
+
+        if (isNaN(payVal) || payVal <= 0) {
+            alert('Monto inválido.');
+            return;
+        }
+
+        if (payVal > absAmount) {
+            alert(`El abono no puede ser mayor que la deuda actual (${formatCurrency(absAmount)}).`);
+            return;
+        }
+
+        const selectedAccount = prompt(
+            `Abono de ${formatCurrency(payVal)} a ${personKey}.\n` +
+            `¿${isDebt ? 'De qué cuenta sale el pago' : 'A qué cuenta entra el cobro'}?\n\n` +
+            `1: Efectivo (Cartera)\n` +
+            `2: Bote Local (Efectivo)\n` +
+            `3: Banamex (Débito)\n` +
+            `4: Nu (Débito)\n` +
+            `5: Mercado Pago (Débito)\n` +
+            `6: Tarjeta Crédito Mercado Pago\n` +
+            `7: Tarjeta Crédito Nu`
+        );
+
+        if (!selectedAccount) return;
+
+        let targetAccount = '';
+        switch(selectedAccount.trim()) {
+            case '1': targetAccount = 'Efectivo (Cartera)'; break;
+            case '2': targetAccount = 'Bote Local (Efectivo)'; break;
+            case '3': targetAccount = 'Banamex (Débito)'; break;
+            case '4': targetAccount = 'Nu (Débito)'; break;
+            case '5': targetAccount = 'Mercado Pago (Débito)'; break;
+            case '6': targetAccount = 'Tarjeta Crédito Mercado Pago'; break;
+            case '7': targetAccount = 'Tarjeta Crédito Nu'; break;
+            default: alert('Opción no válida.'); return;
+        }
+
+        // 1. Registrar movimiento de dinero correspondiente
+        const paymentRecord = {
+            id: Date.now(),
+            type: isDebt ? 'egreso' : 'ingreso',
+            account: targetAccount,
+            category: isDebt ? 'Pago de Deuda / Préstamo' : 'Abono de Préstamo / Servicio',
+            person: personKey,
+            amount: payVal,
+            msi: 1,
+            hasInterest: false,
+            date: getLocalDateString(),
+            description: `Abono a ${personKey}`,
+            status: 'completado'
+        };
+
+        transactions.push(paymentRecord);
+
+        // 2. Descontar proporcionalmente de los registros de préstamo pendientes
+        let remainingToDeduct = payVal;
+        
+        for (let t of transactions) {
+            if (t.status !== 'pendiente') continue;
+
+            let matches = false;
+            if (isDebt && t.type === 'prestamo_recibido' && t.person === personKey) matches = true;
+            if (isDebt && t.type === 'egreso' && (t.person === personKey || `Por Pagar: ${t.person}` === personKey || `Por Pagar (${t.category})` === personKey)) matches = true;
+            if (!isDebt && t.type === 'prestamo_otorgado' && t.person === personKey) matches = true;
+            if (!isDebt && t.type === 'ingreso' && (t.person === personKey || `Cliente: ${t.person}` === personKey || `Servicio (${t.category})` === personKey)) matches = true;
+
+            if (matches) {
+                if (t.amount <= remainingToDeduct) {
+                    remainingToDeduct -= t.amount;
+                    t.status = 'completado';
+                } else {
+                    t.amount -= remainingToDeduct;
+                    remainingToDeduct = 0;
+                    break;
+                }
+            }
+        }
+
+        alert(`¡Abono de ${formatCurrency(payVal)} registrado en ${targetAccount}!`);
+        saveAndRender();
+    }
+
     function sendWhatsAppReminder(personName, amount) {
         const msg = encodeURIComponent(`Hola ${personName}, te saludo cordialmente. Te comparto el recordatorio de tu saldo pendiente actual de ${formatCurrency(amount)}. ¡Quedo atento, gracias!`);
         window.open(`https://wa.me/?text=${msg}`, '_blank');
@@ -1383,7 +1491,10 @@
                         <td class="${colorClass}">${statusText}</td>
                         <td class="${colorClass}"><strong>${formatCurrency(Math.abs(balance))}</strong></td>
                         <td>
-                            ${balance > 0 ? `<button class="ws-btn" onclick="sendWhatsAppReminder('${person}', ${balance})">📱 Recordar</button>` : '-'}
+                            <div class="action-btns">
+                                <button class="abonar-btn" onclick="makeLoanPayment('${person}', ${balance})">💵 Abonar</button>
+                                ${balance > 0 ? `<button class="ws-btn" onclick="sendWhatsAppReminder('${person}', ${balance})">📱 Recordar</button>` : ''}
+                            </div>
                         </td>
                     `;
                     peopleTbody.appendChild(tr);
