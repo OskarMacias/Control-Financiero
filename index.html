@@ -499,7 +499,6 @@
                 </select>
             </div>
 
-            <!-- Sección de Mensualidades Mercado Libre / Tarjetas -->
             <div id="msi-group" style="display: none; background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 12px;">
                 <div class="form-group">
                     <label for="msi-months">Plan de Mensualidades Mercado Libre</label>
@@ -700,6 +699,15 @@
         ajuste_saldo: ['Saldo Inicial', 'Corrección de Balance']
     };
 
+    // Función para obtener la fecha local exacta del dispositivo (YYYY-MM-DD)
+    function getLocalDateString() {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     function loadStoredTransactions() {
         const primary = localStorage.getItem('finances_data');
         if (primary && JSON.parse(primary).length > 0) return JSON.parse(primary);
@@ -721,7 +729,8 @@
     let currentPeriod = 'all';
     let expenseChartInstance = null;
 
-    document.getElementById('date').valueAsDate = new Date();
+    // Asignar fecha local al cargar la página
+    document.getElementById('date').value = getLocalDateString();
 
     function formatCurrency(amount) {
         return new Intl.NumberFormat('en-US', {
@@ -938,7 +947,7 @@
         transactions.push(newRecord);
         saveAndRender();
         this.reset();
-        document.getElementById('date').valueAsDate = new Date();
+        document.getElementById('date').value = getLocalDateString();
         document.getElementById('person').value = '';
         document.getElementById('is-pending-service').checked = false;
         document.getElementById('msi-months').value = '1';
@@ -1000,8 +1009,8 @@
     }
 
     function getFilteredTransactions() {
-        const now = new Date();
         const searchWord = document.getElementById('search-input') ? document.getElementById('search-input').value.toLowerCase().trim() : '';
+        const todayStr = getLocalDateString();
         
         return transactions.filter(t => {
             if (searchWord !== '') {
@@ -1016,10 +1025,12 @@
 
             if (t.type === 'prestamo_recibido' || t.type === 'prestamo_otorgado' || (t.type === 'ingreso' && t.status === 'pendiente')) return true;
 
+            if (currentPeriod === 'day') return t.date === todayStr;
+
             const [year, month, day] = t.date.split('-').map(Number);
             const tDate = new Date(year, month - 1, day);
+            const now = new Date();
 
-            if (currentPeriod === 'day') return tDate.toDateString() === now.toDateString();
             if (currentPeriod === 'week') {
                 const startOfWeek = new Date(now);
                 startOfWeek.setDate(now.getDate() - now.getDay());
@@ -1029,7 +1040,7 @@
                 endOfWeek.setHours(23,59,59,999);
                 return tDate >= startOfWeek && tDate <= endOfWeek;
             }
-            if (currentPeriod === 'month') return tDate.getMonth() === now.getMonth() && tDate.getFullYear() === now.getFullYear();
+            if (currentPeriod === 'month') return (tDate.getMonth() === now.getMonth()) && (tDate.getFullYear() === now.getFullYear());
             if (currentPeriod === 'year') return tDate.getFullYear() === now.getFullYear();
 
             return true;
@@ -1153,7 +1164,6 @@
             }
         });
 
-        // Dibujar Tarjetas Bancarias
         const cardsContainer = document.getElementById('bank-cards-container');
         cardsContainer.innerHTML = '';
         const showAll = document.getElementById('show-all-accounts').checked;
@@ -1208,7 +1218,6 @@
             cardsContainer.innerHTML = '<p style="font-size:0.8rem; color:#94a3b8; grid-column: 1/-1; text-align:center;">No hay saldos o deudas activas en este momento.</p>';
         }
 
-        // Ordenamiento Cronológico ASCENDENTE
         filtered.sort((a, b) => {
             if (a.date !== b.date) {
                 return a.date.localeCompare(b.date);
